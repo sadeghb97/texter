@@ -295,27 +295,29 @@ a:hover { color: #93c5fd; }
     <footer class="app-footer" aria-label="Message actions and pagination">
         <div class="container bottom-bar">
             <div class="d-flex align-items-center gap-2 flex-wrap bottom-bar__inner">
-                <button
-                    type="button"
-                    class="btn btn-primary bottom-bar__send"
-                    data-bs-toggle="modal"
-                    data-bs-target="#messageModal"
-                >
-                    Create
-                </button>
-
-                <button
-                    type="button"
-                    class="btn btn-purple bottom-bar__send"
-                    data-bs-toggle="modal"
-                    data-bs-target="#sendMessageModal"
-                >
-                    Message
-                </button>
-
-                <nav class="bottom-bar__pagination ms-auto" aria-label="Pagination">
-                    <ul class="pagination justify-content-end" id="pagination"></ul>
+                <nav class="bottom-bar__pagination me-auto" aria-label="Pagination">
+                    <ul class="pagination justify-content-start" id="pagination"></ul>
                 </nav>
+
+                <div class="d-flex align-items-center gap-2 ms-auto flex-wrap">
+                    <button
+                        type="button"
+                        class="btn btn-primary bottom-bar__send"
+                        data-bs-toggle="modal"
+                        data-bs-target="#messageModal"
+                    >
+                        Create
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-purple bottom-bar__send"
+                        data-bs-toggle="modal"
+                        data-bs-target="#sendMessageModal"
+                    >
+                        Message
+                    </button>
+                </div>
             </div>
         </div>
     </footer>
