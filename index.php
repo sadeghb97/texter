@@ -16,7 +16,19 @@ $userId = $_SESSION['user_id'];
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
 html, body { height: 100%; }
-body { background:#f8f9fa; overflow: hidden; }
+body { background:#0f172a; color: #e2e8f0; overflow: hidden; }
+a { color: #60a5fa; }
+a:hover { color: #93c5fd; }
+
+/* Dark theme tokens aligned with login.php */
+:root{
+    --app-bg: #0f172a;
+    --surface: #1e293b;
+    --surface-2: #172554;
+    --border: rgba(148, 163, 184, 0.18);
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+}
 .app-shell{
     height: 100dvh; /* better on mobile than 100vh */
     display: flex;
@@ -26,6 +38,27 @@ body { background:#f8f9fa; overflow: hidden; }
     position: sticky;
     top: 0;
     z-index: 1030; /* above content */
+}
+.app-header.navbar{
+    background: rgba(23, 37, 84, 0.92) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+}
+.app-header .navbar-brand{
+    color: var(--text);
+}
+.app-header .navbar-brand:hover{
+    color: #ffffff;
+}
+.app-header .btn-outline-danger{
+    border-color: rgba(248, 113, 113, 0.55);
+    color: #fecaca;
+}
+.app-header .btn-outline-danger:hover{
+    background: rgba(248, 113, 113, 0.15);
+    border-color: rgba(248, 113, 113, 0.7);
+    color: #fff;
 }
 .app-content{
     flex: 1 1 auto;
@@ -37,11 +70,11 @@ body { background:#f8f9fa; overflow: hidden; }
     position: sticky;
     bottom: 0;
     z-index: 1030;
-    background: rgba(255,255,255,0.92);
+    background: rgba(23, 37, 84, 0.92);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 -6px 20px rgba(0,0,0,0.06);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -10px 24px rgba(0,0,0,0.35);
     padding-bottom: env(safe-area-inset-bottom);
 }
 .bottom-bar{
@@ -74,11 +107,64 @@ body { background:#f8f9fa; overflow: hidden; }
     min-width: 140px;
 }
 .message-box {
-    background:white;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius:12px;
     padding:12px;
     margin-bottom:10px;
-    box-shadow:0 2px 5px rgba(0,0,0,0.05);
+    box-shadow:0 8px 20px rgba(0,0,0,0.25);
+    color: var(--text);
+}
+.message-box small{
+    color: var(--muted);
+}
+.app-footer .page-link{
+    background: rgba(30, 41, 59, 0.75);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+.app-footer .page-link:hover{
+    background: rgba(30, 41, 59, 0.95);
+    color: #ffffff;
+}
+.app-footer .page-item.disabled .page-link{
+    background: rgba(30, 41, 59, 0.35);
+    color: rgba(226, 232, 240, 0.5);
+    border-color: rgba(148, 163, 184, 0.12);
+}
+.app-footer .page-item.active .page-link{
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+/* Modal dark styling */
+.modal-content{
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.modal-header,
+.modal-footer{
+    border-color: var(--border);
+}
+.btn-close{
+    filter: invert(1) grayscale(100%);
+    opacity: .85;
+}
+.form-control{
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+.form-control:focus{
+    background: rgba(15, 23, 42, 0.75);
+    border-color: rgba(96, 165, 250, 0.65);
+    box-shadow: 0 0 0 .25rem rgba(59, 130, 246, 0.25);
+    color: var(--text);
+}
+.form-control::placeholder{
+    color: rgba(226, 232, 240, 0.55);
 }
 .copy-btn--copied{
     background:#198754 !important; /* close to Bootstrap success */
