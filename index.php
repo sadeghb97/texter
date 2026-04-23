@@ -64,10 +64,13 @@ body { background:#f8f9fa; }
 <button class="btn-close" data-bs-dismiss="modal"></button>
 </div>
 <div class="modal-body">
-<textarea id="messageInput" class="form-control"></textarea>
+<textarea id="messageInput" class="form-control" rows="4" placeholder="Type your message..."></textarea>
 </div>
 <div class="modal-footer">
-<button class="btn btn-primary" onclick="sendMessage()">Send</button>
+<button id="pasteFromClipboardBtn" type="button" class="btn btn-outline-secondary" onclick="pasteFromClipboard()">
+    Paste from clipboard
+</button>
+<button id="sendMessageBtn" type="button" class="btn btn-primary" onclick="sendMessage()" disabled>Send</button>
 </div>
 </div>
 </div>
@@ -77,6 +80,31 @@ body { background:#f8f9fa; }
 <script>
 let currentPage = 1;
 const pageLimit = 5;
+
+function getMessageModalInstance() {
+    const el = document.getElementById("messageModal");
+    if (!el) return null;
+    return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+}
+
+function getMessageText() {
+    const el = document.getElementById("messageInput");
+    return (el?.value ?? "");
+}
+
+function setMessageText(nextText, { focus = true } = {}) {
+    const el = document.getElementById("messageInput");
+    if (!el) return;
+    el.value = nextText;
+    if (focus) el.focus();
+    updateSendButtonState();
+}
+
+function updateSendButtonState() {
+    const btn = document.getElementById("sendMessageBtn");
+    if (!btn) return;
+    btn.disabled = getMessageText().trim().length === 0;
+}
 
 function loadMessages(page = 1) {
     currentPage = page;
@@ -150,15 +178,84 @@ function renderPagination(total) {
 }
 
 function sendMessage() {
-    const text = document.getElementById("messageInput").value;
+    const text = getMessageText().trim();
+    if (!text) {
+        updateSendButtonState();
+        return;
+    }
+
+    const sendBtn = document.getElementById("sendMessageBtn");
+    const originalSendLabel = sendBtn?.textContent ?? "Send";
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.textContent = "Sending...";
+    }
+
     fetch('api/add_message.php', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({text})
-    }).then(()=> {
-        document.getElementById("messageInput").value="";
+    })
+    .then(async (res) => {
+        // If API returns JSON, surface error, otherwise treat as ok on 2xx.
+        try {
+            const data = await res.clone().json();
+            if (data?.error) throw new Error(data.error);
+        } catch (_) {}
+        if (!res.ok) throw new Error("Send failed");
+    })
+    .then(() => {
+        setMessageText("", { focus: false });
         loadMessages(currentPage);
+        const modal = getMessageModalInstance();
+        modal?.hide();
+    })
+    .catch(() => {
+        // keep text so user can retry
+        if (sendBtn) sendBtn.disabled = false;
+    })
+    .finally(() => {
+        if (sendBtn) sendBtn.textContent = originalSendLabel;
+        updateSendButtonState();
     });
+}
+
+async function pasteFromClipboard() {
+    const btn = document.getElementById("pasteFromClipboardBtn");
+    const originalLabel = btn?.textContent ?? "Paste from clipboard";
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Pasting...";
+    }
+
+    try {
+        let clip = "";
+        if (navigator.clipboard?.readText) {
+            clip = await navigator.clipboard.readText();
+        } else {
+            throw new Error("Clipboard read not supported");
+        }
+
+        const current = getMessageText();
+        const combined = (current && clip) ? (current + "\n" + clip) : (current + clip);
+        setMessageText(combined);
+    } catch (e) {
+        // Fallback: ask user to paste manually
+        try {
+            const manual = window.prompt("Paste your clipboard text here:");
+            if (manual != null) {
+                const current = getMessageText();
+                const combined = (current && manual) ? (current + "\n" + manual) : (current + manual);
+                setMessageText(combined);
+            }
+        } catch (_) {}
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalLabel;
+        }
+        updateSendButtonState();
+    }
 }
 
 async function copyText(btn, text){
@@ -205,6 +302,31 @@ async function copyText(btn, text){
 }
 
 loadMessages();
+
+// Wire up modal input behavior
+(() => {
+    const input = document.getElementById("messageInput");
+    const modalEl = document.getElementById("messageModal");
+
+    if (input) {
+        input.addEventListener("input", updateSendButtonState);
+        input.addEventListener("keydown", (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") sendMessage();
+        });
+    }
+
+    if (modalEl) {
+        modalEl.addEventListener("shown.bs.modal", () => {
+            updateSendButtonState();
+            document.getElementById("messageInput")?.focus();
+        });
+        modalEl.addEventListener("hidden.bs.modal", () => {
+            setMessageText("", { focus: false });
+        });
+    }
+
+    updateSendButtonState();
+})();
 </script>
 </body>
 </html>
