@@ -274,14 +274,25 @@ function loadMessages(page = 1) {
             return;
         }
 
+        const escapeHtml = (value) => {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        };
+
         data.messages.forEach(msg => {
+            const authorSafe = escapeHtml(msg.author);
+            const textSafe = escapeHtml(msg.text);
             container.innerHTML += `
             <div class="message-box">
-                <div class="d-flex justify-content-between">
-                    <small>${msg.author}</small>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="copyText(this, '${msg.text.replace(/'/g,"\\'")}')">Copy</button>
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <small>${authorSafe}</small>
+                    <button type="button" class="btn btn-sm btn-outline-secondary copy-btn">Copy</button>
                 </div>
-                <div>${msg.text}</div>
+                <div class="message-text" style="white-space: pre-wrap;">${textSafe}</div>
             </div>`;
         });
 
@@ -459,6 +470,15 @@ loadMessages();
 
 // Wire up modal input behavior
 (() => {
+    // Copy button handler (event delegation).
+    document.getElementById("messages")?.addEventListener("click", (e) => {
+        const btn = e.target?.closest?.("button.copy-btn");
+        if (!btn) return;
+        const box = btn.closest(".message-box");
+        const text = box?.querySelector?.(".message-text")?.innerText ?? "";
+        copyText(btn, text);
+    });
+
     const input = document.getElementById("messageInput");
     const modalEl = document.getElementById("messageModal");
 
