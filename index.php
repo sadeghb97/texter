@@ -15,22 +15,70 @@ $userId = $_SESSION['user_id'];
 <title>Profile</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-body { background:#f8f9fa; }
+html, body { height: 100%; }
+body { background:#f8f9fa; overflow: hidden; }
+.app-shell{
+    height: 100dvh; /* better on mobile than 100vh */
+    display: flex;
+    flex-direction: column;
+}
+.app-header{
+    position: sticky;
+    top: 0;
+    z-index: 1030; /* above content */
+}
+.app-content{
+    flex: 1 1 auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 0;
+}
+.app-footer{
+    position: sticky;
+    bottom: 0;
+    z-index: 1030;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 -6px 20px rgba(0,0,0,0.06);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-bar{
+    padding: 10px 10px;
+}
+.bottom-bar__inner{
+    padding-left: .25rem;
+    padding-right: .25rem;
+}
+.bottom-bar__pagination{
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-left: .25rem;
+    padding-right: .25rem;
+}
+.bottom-bar__pagination::-webkit-scrollbar{ display:none; }
+.bottom-bar__pagination .pagination{
+    flex-wrap: nowrap;
+    margin-bottom: 0;
+}
+.app-footer .page-link{
+    padding: .5rem .85rem; /* larger tap targets */
+    font-size: 1rem;
+    border-radius: .6rem;
+}
+.app-footer .page-item + .page-item{
+    margin-left: .35rem; /* more breathing room */
+}
+.bottom-bar__send{
+    min-width: 140px;
+}
 .message-box {
     background:white;
     border-radius:12px;
     padding:12px;
     margin-bottom:10px;
     box-shadow:0 2px 5px rgba(0,0,0,0.05);
-}
-.fab {
-    position:fixed;
-    bottom:20px;
-    right:20px;
-    width:60px;
-    height:60px;
-    border-radius:50%;
-    font-size:28px;
 }
 .copy-btn--copied{
     background:#198754 !important; /* close to Bootstrap success */
@@ -42,19 +90,39 @@ body { background:#f8f9fa; }
 </head>
 <body>
 
-<nav class="navbar bg-white shadow-sm">
-<div class="container d-flex justify-content-between align-items-center">
-<span class="navbar-brand mb-0 h1"><?php echo $username; ?></span>
-<a class="btn btn-outline-danger btn-sm" href="logout.php">Logout</a>
-</div>
-</nav>
+<div class="app-shell">
+    <nav class="navbar bg-white shadow-sm app-header">
+        <div class="container d-flex justify-content-between align-items-center">
+            <span class="navbar-brand mb-0 h1"><?php echo $username; ?></span>
+            <a class="btn btn-outline-danger btn-sm" href="logout.php">Logout</a>
+        </div>
+    </nav>
 
-<div class="container mt-3">
-<div id="messages"></div>
-<ul class="pagination justify-content-center" id="pagination"></ul>
-</div>
+    <main class="app-content" aria-label="Messages">
+        <div class="container">
+            <div id="messages"></div>
+        </div>
+    </main>
 
-<button class="btn btn-primary fab" data-bs-toggle="modal" data-bs-target="#messageModal">+</button>
+    <footer class="app-footer" aria-label="Message actions and pagination">
+        <div class="container bottom-bar">
+            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap bottom-bar__inner">
+                <button
+                    type="button"
+                    class="btn btn-primary bottom-bar__send"
+                    data-bs-toggle="modal"
+                    data-bs-target="#messageModal"
+                >
+                    Send message
+                </button>
+
+                <nav class="bottom-bar__pagination ms-auto" aria-label="Pagination">
+                    <ul class="pagination justify-content-end" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </footer>
+</div>
 
 <div class="modal fade" id="messageModal">
 <div class="modal-dialog">
@@ -79,7 +147,7 @@ body { background:#f8f9fa; }
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 let currentPage = 1;
-const pageLimit = 5;
+const pageLimit = 10;
 
 function getMessageModalInstance() {
     const el = document.getElementById("messageModal");
