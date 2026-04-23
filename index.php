@@ -420,6 +420,7 @@ a:hover { color: #93c5fd; }
 <script>
 let currentPage = 1;
 const pageLimit = 10;
+const CURRENT_USER_ID = <?php echo (int)$userId; ?>;
 
 function getMessageModalInstance() {
     const el = document.getElementById("messageModal");
@@ -799,8 +800,9 @@ function sendToUsers() {
     const text = getSendMessageText().trim();
     const sendToSelf = !!document.getElementById("sendToSelfToggle")?.checked;
     const recipients = Array.from(selectedRecipients.keys());
-    if (sendToSelf) recipients.push(<?php echo (int)$userId; ?>);
+    if (sendToSelf) recipients.push(CURRENT_USER_ID);
     const uniqueRecipients = Array.from(new Set(recipients)).filter((id) => Number(id) > 0);
+    const includesSelf = uniqueRecipients.includes(CURRENT_USER_ID);
 
     if (!text || uniqueRecipients.length === 0) {
         updateSendToUsersButtonState();
@@ -831,6 +833,7 @@ function sendToUsers() {
         updateRecipientTags();
         const selfToggle = document.getElementById("sendToSelfToggle");
         if (selfToggle) selfToggle.checked = false;
+        if (includesSelf) loadMessages(currentPage);
         const modal = getSendModalInstance();
         modal?.hide();
     })
