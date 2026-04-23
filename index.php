@@ -76,14 +76,21 @@ body { background:#f8f9fa; }
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 let currentPage = 1;
+const pageLimit = 5;
 
 function loadMessages(page = 1) {
     currentPage = page;
-    fetch(`api/get_messages.php?page=${page}`)
+    fetch(`api/get_messages.php?page=${page}&limit=${pageLimit}`)
     .then(res => res.json())
     .then(data => {
         const container = document.getElementById("messages");
         container.innerHTML = "";
+
+        if (data?.error) {
+            container.innerHTML = `<div class="alert alert-warning mb-2">${data.error}</div>`;
+            renderPagination(0);
+            return;
+        }
 
         data.messages.forEach(msg => {
             container.innerHTML += `
@@ -96,17 +103,50 @@ function loadMessages(page = 1) {
             </div>`;
         });
 
-        renderPagination(data.total_pages);
+        renderPagination(Number(data.total_pages || 0));
     });
 }
 
 function renderPagination(total) {
     const pagination = document.getElementById("pagination");
     pagination.innerHTML = "";
-    for (let i=1;i<=total;i++) {
-        pagination.innerHTML += `<li class="page-item ${i===currentPage?'active':''}">
-        <a class="page-link" href="#" onclick="loadMessages(${i})">${i}</a></li>`;
+    if (!total || total <= 1) return;
+
+    if (currentPage > total) currentPage = total;
+    const windowSize = 7;
+    const half = Math.floor(windowSize / 2);
+    let start = Math.max(1, currentPage - half);
+    let end = Math.min(total, start + windowSize - 1);
+    start = Math.max(1, end - windowSize + 1);
+
+    const addItem = (label, page, { disabled = false, active = false } = {}) => {
+        const liClass = `page-item ${disabled ? 'disabled' : ''} ${active ? 'active' : ''}`.trim();
+        const safeOnClick = disabled ? 'return false;' : `loadMessages(${page}); return false;`;
+        pagination.innerHTML += `
+            <li class="${liClass}">
+                <a class="page-link" href="#" onclick="${safeOnClick}">${label}</a>
+            </li>`;
+    };
+
+    addItem('«', 1, { disabled: currentPage === 1 });
+    addItem('‹', Math.max(1, currentPage - 1), { disabled: currentPage === 1 });
+
+    if (start > 1) {
+        addItem('1', 1, { active: currentPage === 1 });
+        if (start > 2) pagination.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
     }
+
+    for (let i = start; i <= end; i++) {
+        addItem(String(i), i, { active: i === currentPage });
+    }
+
+    if (end < total) {
+        if (end < total - 1) pagination.innerHTML += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+        addItem(String(total), total, { active: currentPage === total });
+    }
+
+    addItem('›', Math.min(total, currentPage + 1), { disabled: currentPage === total });
+    addItem('»', total, { disabled: currentPage === total });
 }
 
 function sendMessage() {
