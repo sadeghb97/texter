@@ -199,7 +199,7 @@ a:hover { color: #93c5fd; }
                     data-bs-toggle="modal"
                     data-bs-target="#messageModal"
                 >
-                    Send message
+                    Create
                 </button>
 
                 <nav class="bottom-bar__pagination ms-auto" aria-label="Pagination">
@@ -359,7 +359,7 @@ function sendMessage() {
     fetch('api/add_message.php', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({text})
+        body: JSON.stringify({ text, profile_pk: <?php echo (int)$userId; ?> })
     })
     .then(async (res) => {
         // If API returns JSON, surface error, otherwise treat as ok on 2xx.

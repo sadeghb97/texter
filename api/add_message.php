@@ -19,10 +19,26 @@ if ($rawText === '') {
     exit;
 }
 
+$profilePk = null;
+if (is_array($data) && array_key_exists('profile_pk', $data)) {
+    $profilePk = (int)$data['profile_pk'];
+}
+if (empty($profilePk)) {
+    http_response_code(400);
+    echo json_encode(["error" => "profile_pk_required"]);
+    exit;
+}
+
 $text = $conn->real_escape_string($rawText);
 $createdAt = time();
 $authorPk = (int)$_SESSION['user_id'];
 
-$conn->query("INSERT INTO messages (text, author_pk, created_at) VALUES ('$text',$authorPk, $createdAt)");
+if ($profilePk !== $authorPk) {
+    http_response_code(403);
+    echo json_encode(["error" => "forbidden_profile_pk"]);
+    exit;
+}
+
+$conn->query("INSERT INTO messages (text, author_pk, profile_pk, created_at) VALUES ('$text',$authorPk, $profilePk, $createdAt)");
 echo json_encode(["status"=>"ok"]);
 ?>
