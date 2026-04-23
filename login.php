@@ -1,30 +1,9 @@
 <?php
 require 'lib/library.php';
 
-$conn = new TexterConnection();
-$error = '';
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
-
-    $stmt = $conn->prepare("SELECT id, password FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if (!$user = $result->fetch_assoc()) {
-        $error = "Username not found";
-    } elseif (!password_verify($password, $user['password'])) {
-        $error = "Wrong password";
-    } else {
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $username;
-
-        header("Location: index.php");
-        exit;
-    }
+if (!empty($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit;
 }
 ?>
 
@@ -39,20 +18,99 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
 <div class="container">
-    <form method="POST" class="card">
+    <form id="loginForm" action="#" class="card" novalidate>
         <h2>Login</h2>
 
-        <?php if ($error): ?>
-            <div class="error"><?= $error ?></div>
-        <?php endif; ?>
+        <div id="loginError" class="error" style="display:none;"></div>
 
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
+        <input id="username" type="text" name="username" placeholder="Username" required autocomplete="username">
+        <input id="password" type="password" name="password" placeholder="Password" required autocomplete="current-password">
 
-        <button type="submit">Login</button>
+        <button id="loginSubmit" type="submit">Login</button>
 
         <p><a href="register.php">Create account</a></p>
     </form>
 </div>
+
+<script>
+(() => {
+    const form = document.getElementById("loginForm");
+    const errorEl = document.getElementById("loginError");
+    const usernameEl = document.getElementById("username");
+    const passwordEl = document.getElementById("password");
+    const submitBtn = document.getElementById("loginSubmit");
+
+    const setError = (msg) => {
+        if (!errorEl) return;
+        if (!msg) {
+            errorEl.style.display = "none";
+            errorEl.textContent = "";
+            return;
+        }
+        errorEl.textContent = msg;
+        errorEl.style.display = "block";
+    };
+
+    form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        setError("");
+
+        const username = (usernameEl?.value ?? "").trim();
+        const password = (passwordEl?.value ?? "");
+
+        if (!username || !password) {
+            setError("Please fill in username and password.");
+            return;
+        }
+
+        const originalLabel = submitBtn?.textContent ?? "Login";
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Logging in...";
+        }
+
+        try {
+            const res = await fetch("api/login.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+            });
+
+            let data = null;
+            try { data = await res.clone().json(); } catch (_) {}
+
+            if (!res.ok || data?.error) {
+                const err = data?.error || "login_failed";
+                if (err === "wrong_password") {
+                    if (passwordEl) passwordEl.value = "";
+                    setError("Wrong password");
+                    passwordEl?.focus?.();
+                    return;
+                }
+                if (err === "username_not_found") {
+                    setError("Username not found");
+                    usernameEl?.focus?.();
+                    return;
+                }
+                if (err === "missing_fields") {
+                    setError("Missing fields");
+                    return;
+                }
+                setError("Login failed");
+                return;
+            }
+
+            window.location.href = "index.php";
+        } catch (_) {
+            setError("Network error");
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalLabel;
+            }
+        }
+    });
+})();
+</script>
 </body>
 </html>

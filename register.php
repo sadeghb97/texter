@@ -1,30 +1,9 @@
 <?php
 require 'lib/library.php';
 
-$conn = new TexterConnection();
-$error = '';
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = trim($_POST['username']);
-    $password = $_POST['password'];
-
-    if (strlen($username) < 3) {
-        $error = "Username must be at least 3 characters";
-    } elseif (strlen($password) < 4) {
-        $error = "Password must be at least 4 characters";
-    } else {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-
-        $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-        $stmt->bind_param("ss", $username, $hash);
-
-        if ($stmt->execute()) {
-            header("Location: login.php");
-            exit;
-        } else {
-            $error = "Username already exists";
-        }
-    }
+if (!empty($_SESSION['user_id'])) {
+    header("Location: index.php");
+    exit;
 }
 ?>
 
@@ -39,20 +18,105 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body>
 <div class="container">
-    <form method="POST" class="card">
+    <form id="registerForm" action="#" class="card" novalidate>
         <h2>Create Account</h2>
 
-        <?php if ($error): ?>
-            <div class="error"><?= $error ?></div>
-        <?php endif; ?>
+        <div id="registerError" class="error" style="display:none;"></div>
 
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
+        <input id="username" type="text" name="username" placeholder="Username" required autocomplete="username">
+        <input id="password" type="password" name="password" placeholder="Password" required autocomplete="new-password">
 
-        <button type="submit">Register</button>
+        <button id="registerSubmit" type="submit">Register</button>
 
         <p><a href="login.php">Already have an account?</a></p>
     </form>
 </div>
+
+<script>
+(() => {
+    const form = document.getElementById("registerForm");
+    const errorEl = document.getElementById("registerError");
+    const usernameEl = document.getElementById("username");
+    const passwordEl = document.getElementById("password");
+    const submitBtn = document.getElementById("registerSubmit");
+
+    const setError = (msg) => {
+        if (!errorEl) return;
+        if (!msg) {
+            errorEl.style.display = "none";
+            errorEl.textContent = "";
+            return;
+        }
+        errorEl.textContent = msg;
+        errorEl.style.display = "block";
+    };
+
+    form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        setError("");
+
+        const username = (usernameEl?.value ?? "").trim();
+        const password = (passwordEl?.value ?? "");
+
+        if (!username || !password) {
+            setError("Please fill in username and password.");
+            return;
+        }
+
+        const originalLabel = submitBtn?.textContent ?? "Register";
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Creating...";
+        }
+
+        try {
+            const res = await fetch("api/register.php", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+            });
+
+            let data = null;
+            try { data = await res.clone().json(); } catch (_) {}
+
+            if (!res.ok || data?.error) {
+                const err = data?.error || "register_failed";
+                if (err === "username_exists") {
+                    setError("Username already exists");
+                    usernameEl?.focus?.();
+                    return;
+                }
+                if (err === "username_too_short") {
+                    setError("Username must be at least 3 characters");
+                    usernameEl?.focus?.();
+                    return;
+                }
+                if (err === "password_too_short") {
+                    setError("Password must be at least 4 characters");
+                    if (passwordEl) passwordEl.value = "";
+                    passwordEl?.focus?.();
+                    return;
+                }
+                if (err === "missing_fields") {
+                    setError("Missing fields");
+                    return;
+                }
+                setError("Register failed");
+                return;
+            }
+
+            // API auto-logs in on success; go to index.
+            window.location.href = "index.php";
+        } catch (_) {
+            setError("Network error");
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalLabel;
+            }
+        }
+    });
+})();
+</script>
 </body>
 </html>
