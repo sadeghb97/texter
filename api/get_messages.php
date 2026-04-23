@@ -22,16 +22,17 @@ $offset = ($page - 1) * $limit;
 $authorPk = (int)$_SESSION['user_id'];
 
 $totalRow = $conn
-    ->query("SELECT COUNT(*) as cnt FROM messages WHERE author_pk = $authorPk")
+    ->query("SELECT COUNT(*) as cnt FROM messages m INNER JOIN users u ON u.id = m.author_pk WHERE m.author_pk = $authorPk")
     ->fetch_assoc();
 $total = (int)($totalRow['cnt'] ?? 0);
 $total_pages = (int)ceil($total / $limit);
 
 $res = $conn->query(
-    "SELECT pk, text, author_pk, created_at
-     FROM messages
-     WHERE author_pk = $authorPk
-     ORDER BY pk DESC
+    "SELECT m.pk, m.text, m.author_pk, m.created_at, u.username AS author_username
+     FROM messages m
+     INNER JOIN users u ON u.id = m.author_pk
+     WHERE m.author_pk = $authorPk
+     ORDER BY m.pk DESC
      LIMIT $limit OFFSET $offset"
 );
 
@@ -39,7 +40,7 @@ $messages=[];
 while($row=$res->fetch_assoc()){
     $messages[]=[
         "text" => $row['text'],
-        "author" => "User",
+        "author" => $row['author_username'] ?? null,
         "pk" => (int)$row['pk'],
         "created_at" => isset($row['created_at']) ? (int)$row['created_at'] : null
     ];
