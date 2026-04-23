@@ -209,6 +209,35 @@ a:hover { color: #93c5fd; }
 .recipient-autocomplete{
     position: relative;
 }
+.recipient-header-row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+}
+.send-self-switch{
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .25rem .5rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid var(--border);
+    color: rgba(226, 232, 240, 0.9);
+    user-select: none;
+    white-space: nowrap;
+}
+.send-self-switch .form-check-input{
+    margin: 0;
+}
+.send-self-switch .form-check-input:focus{
+    box-shadow: 0 0 0 .2rem rgba(59, 130, 246, 0.25);
+}
+.send-self-switch .form-check-label{
+    margin: 0;
+    font-size: .9rem;
+    color: rgba(226, 232, 240, 0.85);
+}
 .recipient-suggestions{
     position: absolute;
     left: 0;
@@ -352,7 +381,13 @@ a:hover { color: #93c5fd; }
 </div>
 <div class="modal-body">
     <div class="mb-3 recipient-autocomplete" id="recipientAutocomplete">
-        <label class="form-label mb-1" for="recipientInput">Recipients</label>
+        <div class="recipient-header-row mb-1">
+            <label class="form-label mb-0" for="recipientInput">Recipients</label>
+            <div class="form-check form-switch send-self-switch mb-0">
+                <input class="form-check-input" type="checkbox" role="switch" id="sendToSelfToggle" />
+                <label class="form-check-label" for="sendToSelfToggle">Send to me</label>
+            </div>
+        </div>
         <input id="recipientInput" class="form-control" autocomplete="off" placeholder="Search by username or id..." />
         <div id="recipientSuggestions" class="recipient-suggestions list-group d-none" role="listbox" aria-label="Recipient suggestions"></div>
         <div class="form-text" style="color: rgba(226, 232, 240, 0.65);">
@@ -615,7 +650,8 @@ function updateSendToUsersButtonState() {
     if (!btn) return;
     const hasText = getSendMessageText().trim().length > 0;
     const hasRecipients = selectedRecipients.size > 0;
-    btn.disabled = !(hasText && hasRecipients);
+    const sendToSelf = !!document.getElementById("sendToSelfToggle")?.checked;
+    btn.disabled = !(hasText && (hasRecipients || sendToSelf));
 }
 
 let usersFetchTimer = null;
@@ -751,8 +787,12 @@ async function pasteFromClipboardSend() {
 
 function sendToUsers() {
     const text = getSendMessageText().trim();
+    const sendToSelf = !!document.getElementById("sendToSelfToggle")?.checked;
     const recipients = Array.from(selectedRecipients.keys());
-    if (!text || recipients.length === 0) {
+    if (sendToSelf) recipients.push(<?php echo (int)$userId; ?>);
+    const uniqueRecipients = Array.from(new Set(recipients)).filter((id) => Number(id) > 0);
+
+    if (!text || uniqueRecipients.length === 0) {
         updateSendToUsersButtonState();
         return;
     }
@@ -767,7 +807,7 @@ function sendToUsers() {
     fetch('api/add_message.php', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ text, profile_pk: recipients })
+        body: JSON.stringify({ text, profile_pk: uniqueRecipients })
     })
     .then(async (res) => {
         let data = null;
@@ -779,6 +819,8 @@ function sendToUsers() {
         setSendMessageText("", { focus: false });
         selectedRecipients.clear();
         updateRecipientTags();
+        const selfToggle = document.getElementById("sendToSelfToggle");
+        if (selfToggle) selfToggle.checked = false;
         const modal = getSendModalInstance();
         modal?.hide();
     })
@@ -876,6 +918,7 @@ loadMessages();
     const recipientInput = document.getElementById("recipientInput");
     const messageInput = document.getElementById("sendMessageInput");
     const suggestionBox = document.getElementById("recipientSuggestions");
+    const sendToSelfToggle = document.getElementById("sendToSelfToggle");
 
     if (recipientInput) {
         recipientInput.addEventListener("input", () => {
@@ -953,6 +996,10 @@ loadMessages();
         });
     }
 
+    if (sendToSelfToggle) {
+        sendToSelfToggle.addEventListener("change", updateSendToUsersButtonState);
+    }
+
     // Close suggestions on outside click within modal
     document.addEventListener("click", (e) => {
         const box = document.getElementById("recipientSuggestions");
@@ -975,6 +1022,8 @@ loadMessages();
             renderSuggestions([]);
             const ri = document.getElementById("recipientInput");
             if (ri) ri.value = "";
+            const selfToggle = document.getElementById("sendToSelfToggle");
+            if (selfToggle) selfToggle.checked = false;
             setSendMessageText("", { focus: false });
         });
     }
