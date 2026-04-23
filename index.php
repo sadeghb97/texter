@@ -172,6 +172,75 @@ a:hover { color: #93c5fd; }
     color:#fff !important;
     font-weight:700;
 }
+
+/* Purple action button for "Message" */
+.btn-purple{
+    background: #7c3aed;
+    border-color: #7c3aed;
+    color: #fff;
+}
+.btn-purple:hover{
+    background: #6d28d9;
+    border-color: #6d28d9;
+    color: #fff;
+}
+
+/* Recipient autocomplete */
+.recipient-autocomplete{
+    position: relative;
+}
+.recipient-suggestions{
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin-top: .1rem;
+    background: rgba(15, 23, 42, 0.98);
+    border: 1px solid var(--border);
+    border-radius: .75rem;
+    max-height: 220px;
+    overflow: auto;
+    z-index: 1080; /* above modal body */
+}
+.recipient-suggestions .list-group-item{
+    background: transparent;
+    border-color: rgba(148, 163, 184, 0.12);
+    color: var(--text);
+    cursor: pointer;
+}
+.recipient-suggestions .list-group-item:hover{
+    background: rgba(59, 130, 246, 0.15);
+}
+.recipient-suggestions .list-group-item.active,
+.recipient-suggestions .list-group-item:focus{
+    background: rgba(59, 130, 246, 0.25);
+    outline: none;
+}
+.recipient-tags{
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin-top: .5rem;
+}
+.recipient-tag{
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .55rem;
+    border-radius: 999px;
+    background: rgba(124, 58, 237, 0.18);
+    border: 1px solid rgba(124, 58, 237, 0.35);
+    color: #e9d5ff;
+    font-size: .9rem;
+}
+.recipient-tag button{
+    all: unset;
+    cursor: pointer;
+    color: #e9d5ff;
+    opacity: .9;
+    padding: 0 .2rem;
+    line-height: 1;
+}
+.recipient-tag button:hover{ opacity: 1; }
 </style>
 </head>
 <body>
@@ -202,6 +271,15 @@ a:hover { color: #93c5fd; }
                     Create
                 </button>
 
+                <button
+                    type="button"
+                    class="btn btn-purple bottom-bar__send"
+                    data-bs-toggle="modal"
+                    data-bs-target="#sendMessageModal"
+                >
+                    Message
+                </button>
+
                 <nav class="bottom-bar__pagination ms-auto" aria-label="Pagination">
                     <ul class="pagination justify-content-end" id="pagination"></ul>
                 </nav>
@@ -225,6 +303,35 @@ a:hover { color: #93c5fd; }
     Paste from clipboard
 </button>
 <button id="sendMessageBtn" type="button" class="btn btn-primary" onclick="sendMessage()" disabled>Send</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="modal fade" id="sendMessageModal">
+<div class="modal-dialog">
+<div class="modal-content">
+<div class="modal-header">
+<h5 class="modal-title">Send Message</h5>
+<button class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+    <div class="mb-3 recipient-autocomplete" id="recipientAutocomplete">
+        <label class="form-label mb-1" for="recipientInput">Recipients</label>
+        <input id="recipientInput" class="form-control" autocomplete="off" placeholder="Search by username or id..." />
+        <div id="recipientSuggestions" class="recipient-suggestions list-group d-none" role="listbox" aria-label="Recipient suggestions"></div>
+        <div id="recipientTags" class="recipient-tags" aria-label="Selected recipients"></div>
+        <div class="form-text" style="color: rgba(226, 232, 240, 0.65);">
+            Select one or more recipients.
+        </div>
+    </div>
+    <textarea id="sendMessageInput" class="form-control" rows="4" placeholder="Type your message..."></textarea>
+</div>
+<div class="modal-footer">
+<button id="pasteFromClipboardSendBtn" type="button" class="btn btn-outline-secondary" onclick="pasteFromClipboardSend()">
+    Paste from clipboard
+</button>
+<button id="sendToUsersBtn" type="button" class="btn btn-purple" onclick="sendToUsers()" disabled>Send</button>
 </div>
 </div>
 </div>
@@ -423,6 +530,230 @@ async function pasteFromClipboard() {
     }
 }
 
+// --- Send-to-users modal helpers ---
+function getSendModalInstance() {
+    const el = document.getElementById("sendMessageModal");
+    if (!el) return null;
+    return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+}
+
+function getSendMessageText() {
+    const el = document.getElementById("sendMessageInput");
+    return (el?.value ?? "");
+}
+
+function setSendMessageText(nextText, { focus = true } = {}) {
+    const el = document.getElementById("sendMessageInput");
+    if (!el) return;
+    el.value = nextText;
+    if (focus) el.focus();
+    updateSendToUsersButtonState();
+}
+
+const selectedRecipients = new Map(); // id -> {id, username}
+
+function updateRecipientTags() {
+    const tagsEl = document.getElementById("recipientTags");
+    if (!tagsEl) return;
+    const items = Array.from(selectedRecipients.values());
+    tagsEl.innerHTML = items.map(u => {
+        const safeName = String(u.username ?? u.id).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+        return `
+            <span class="recipient-tag" data-id="${u.id}">
+                <span>${safeName}</span>
+                <button type="button" aria-label="Remove recipient" onclick="removeRecipient(${u.id})">×</button>
+            </span>
+        `;
+    }).join("");
+    updateSendToUsersButtonState();
+}
+
+function removeRecipient(id) {
+    selectedRecipients.delete(Number(id));
+    updateRecipientTags();
+}
+
+function updateSendToUsersButtonState() {
+    const btn = document.getElementById("sendToUsersBtn");
+    if (!btn) return;
+    const hasText = getSendMessageText().trim().length > 0;
+    const hasRecipients = selectedRecipients.size > 0;
+    btn.disabled = !(hasText && hasRecipients);
+}
+
+let usersFetchTimer = null;
+async function fetchUserSuggestions(query) {
+    try {
+        const res = await fetch(`api/get_users.php?q=${encodeURIComponent(query)}&limit=12`);
+        const data = await res.json();
+        if (data?.error) return [];
+        return Array.isArray(data?.users) ? data.users : [];
+    } catch (_) {
+        return [];
+    }
+}
+
+const recipientSuggestState = {
+    items: [],
+    activeIndex: -1,
+};
+
+function isSuggestionsOpen() {
+    const box = document.getElementById("recipientSuggestions");
+    return !!box && !box.classList.contains("d-none");
+}
+
+function setActiveSuggestion(index) {
+    const box = document.getElementById("recipientSuggestions");
+    if (!box) return;
+    const buttons = Array.from(box.querySelectorAll("button[data-recipient-id]"));
+    if (!buttons.length) {
+        recipientSuggestState.activeIndex = -1;
+        return;
+    }
+    const next = Math.max(0, Math.min(index, buttons.length - 1));
+    recipientSuggestState.activeIndex = next;
+    buttons.forEach((b, i) => b.classList.toggle("active", i === next));
+    buttons[next]?.scrollIntoView({ block: "nearest" });
+}
+
+function renderSuggestions(users) {
+    const box = document.getElementById("recipientSuggestions");
+    if (!box) return;
+    if (!users.length) {
+        box.classList.add("d-none");
+        box.innerHTML = "";
+        recipientSuggestState.items = [];
+        recipientSuggestState.activeIndex = -1;
+        return;
+    }
+
+    const filtered = users
+        .filter(u => u && typeof u.id === "number" && u.id > 0 && !selectedRecipients.has(u.id))
+        .slice(0, 12)
+        .map(u => ({ id: u.id, username: u.username ?? "" }));
+
+    recipientSuggestState.items = filtered;
+    recipientSuggestState.activeIndex = -1;
+
+    const escapeHtml = (value) => String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+    const rows = filtered.map((u, idx) => {
+        const safeName = escapeHtml(u.username || u.id);
+        return `<button
+            type="button"
+            class="list-group-item list-group-item-action"
+            role="option"
+            id="recipient-option-${idx}"
+            data-recipient-id="${u.id}"
+            data-recipient-username="${escapeHtml(u.username)}"
+        >${safeName} <small style="color: rgba(226,232,240,.55)">#${u.id}</small></button>`;
+    });
+
+    box.innerHTML = rows.join("");
+    if (box.innerHTML.trim() === "") {
+        box.classList.add("d-none");
+        recipientSuggestState.items = [];
+        recipientSuggestState.activeIndex = -1;
+        return;
+    }
+    box.classList.remove("d-none");
+    setActiveSuggestion(0);
+}
+
+function selectRecipient(id, username) {
+    const rid = Number(id);
+    if (!rid || rid <= 0) return;
+    selectedRecipients.set(rid, { id: rid, username: String(username || rid) });
+    const input = document.getElementById("recipientInput");
+    if (input) input.value = "";
+    renderSuggestions([]);
+    updateRecipientTags();
+    document.getElementById("recipientInput")?.focus();
+}
+
+async function pasteFromClipboardSend() {
+    const btn = document.getElementById("pasteFromClipboardSendBtn");
+    const originalLabel = btn?.textContent ?? "Paste from clipboard";
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Pasting...";
+    }
+    try {
+        let clip = "";
+        if (navigator.clipboard?.readText) {
+            clip = await navigator.clipboard.readText();
+        } else {
+            throw new Error("Clipboard read not supported");
+        }
+        const current = getSendMessageText();
+        const combined = (current && clip) ? (current + "\n" + clip) : (current + clip);
+        setSendMessageText(combined);
+    } catch (e) {
+        try {
+            const manual = window.prompt("Paste your clipboard text here:");
+            if (manual != null) {
+                const current = getSendMessageText();
+                const combined = (current && manual) ? (current + "\n" + manual) : (current + manual);
+                setSendMessageText(combined);
+            }
+        } catch (_) {}
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = originalLabel;
+        }
+        updateSendToUsersButtonState();
+    }
+}
+
+function sendToUsers() {
+    const text = getSendMessageText().trim();
+    const recipients = Array.from(selectedRecipients.keys());
+    if (!text || recipients.length === 0) {
+        updateSendToUsersButtonState();
+        return;
+    }
+
+    const sendBtn = document.getElementById("sendToUsersBtn");
+    const originalSendLabel = sendBtn?.textContent ?? "Send";
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.textContent = "Sending...";
+    }
+
+    fetch('api/add_message.php', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ text, profile_pk: recipients })
+    })
+    .then(async (res) => {
+        let data = null;
+        try { data = await res.clone().json(); } catch (_) {}
+        if (!res.ok) throw new Error(data?.error || "Send failed");
+        if (data?.error) throw new Error(data.error);
+    })
+    .then(() => {
+        setSendMessageText("", { focus: false });
+        selectedRecipients.clear();
+        updateRecipientTags();
+        const modal = getSendModalInstance();
+        modal?.hide();
+    })
+    .catch(() => {
+        if (sendBtn) sendBtn.disabled = false;
+    })
+    .finally(() => {
+        if (sendBtn) sendBtn.textContent = originalSendLabel;
+        updateSendToUsersButtonState();
+    });
+}
+
 async function copyText(btn, text){
     const originalText = btn?.textContent ?? "Copy";
     const originalDisabled = btn?.disabled ?? false;
@@ -500,6 +831,118 @@ loadMessages();
     }
 
     updateSendButtonState();
+})();
+
+// Wire up send-to-users modal behavior
+(() => {
+    const modalEl = document.getElementById("sendMessageModal");
+    const recipientInput = document.getElementById("recipientInput");
+    const messageInput = document.getElementById("sendMessageInput");
+    const suggestionBox = document.getElementById("recipientSuggestions");
+
+    if (recipientInput) {
+        recipientInput.addEventListener("input", () => {
+            const q = recipientInput.value.trim();
+            if (usersFetchTimer) clearTimeout(usersFetchTimer);
+            if (q.length < 1) {
+                renderSuggestions([]);
+                return;
+            }
+            usersFetchTimer = setTimeout(async () => {
+                const users = await fetchUserSuggestions(q);
+                renderSuggestions(users);
+            }, 200);
+        });
+        recipientInput.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+                renderSuggestions([]);
+                return;
+            }
+
+            if (e.key === "ArrowDown") {
+                if (!isSuggestionsOpen()) {
+                    const q = recipientInput.value.trim();
+                    if (q.length >= 1) {
+                        e.preventDefault();
+                        fetchUserSuggestions(q).then(renderSuggestions);
+                    }
+                    return;
+                }
+                e.preventDefault();
+                setActiveSuggestion((recipientSuggestState.activeIndex < 0 ? 0 : recipientSuggestState.activeIndex + 1));
+                return;
+            }
+
+            if (e.key === "ArrowUp") {
+                if (!isSuggestionsOpen()) return;
+                e.preventDefault();
+                setActiveSuggestion((recipientSuggestState.activeIndex < 0 ? 0 : recipientSuggestState.activeIndex - 1));
+                return;
+            }
+
+            if (e.key === "Enter") {
+                if (!isSuggestionsOpen()) return;
+                const idx = recipientSuggestState.activeIndex;
+                const item = recipientSuggestState.items?.[idx];
+                if (!item) return;
+                e.preventDefault();
+                selectRecipient(item.id, item.username);
+                return;
+            }
+        });
+    }
+
+    if (suggestionBox) {
+        suggestionBox.addEventListener("click", (e) => {
+            const btn = e.target?.closest?.("button[data-recipient-id]");
+            if (!btn) return;
+            const id = Number(btn.getAttribute("data-recipient-id"));
+            const username = btn.getAttribute("data-recipient-username") || "";
+            selectRecipient(id, username);
+        });
+        suggestionBox.addEventListener("mousemove", (e) => {
+            const btn = e.target?.closest?.("button[data-recipient-id]");
+            if (!btn) return;
+            const buttons = Array.from(suggestionBox.querySelectorAll("button[data-recipient-id]"));
+            const idx = buttons.indexOf(btn);
+            if (idx >= 0) setActiveSuggestion(idx);
+        });
+    }
+
+    if (messageInput) {
+        messageInput.addEventListener("input", updateSendToUsersButtonState);
+        messageInput.addEventListener("keydown", (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") sendToUsers();
+        });
+    }
+
+    // Close suggestions on outside click within modal
+    document.addEventListener("click", (e) => {
+        const box = document.getElementById("recipientSuggestions");
+        const wrap = document.getElementById("recipientAutocomplete");
+        if (!box || !wrap) return;
+        if (wrap.contains(e.target)) return;
+        renderSuggestions([]);
+    });
+
+    if (modalEl) {
+        modalEl.addEventListener("shown.bs.modal", () => {
+            updateRecipientTags();
+            updateSendToUsersButtonState();
+            document.getElementById("recipientInput")?.focus();
+        });
+        modalEl.addEventListener("hidden.bs.modal", () => {
+            // reset UI
+            selectedRecipients.clear();
+            updateRecipientTags();
+            renderSuggestions([]);
+            const ri = document.getElementById("recipientInput");
+            if (ri) ri.value = "";
+            setSendMessageText("", { focus: false });
+        });
+    }
+
+    updateSendToUsersButtonState();
 })();
 </script>
 </body>
