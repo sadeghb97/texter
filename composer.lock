@@ -1,0 +1,69 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "778b2727e7ba05bef41549a4cd794589",
+    "packages": [
+        {
+            "name": "sadeghb97/avetify",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/sadeghb97/avetify.git",
+                "reference": "b71756f2aea841ac81c666ff5906c263a08ba8c4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/sadeghb97/avetify/zipball/b71756f2aea841ac81c666ff5906c263a08ba8c4",
+                "reference": "b71756f2aea841ac81c666ff5906c263a08ba8c4",
+                "shasum": ""
+            },
+            "require": {
+                "ext-exif": "*",
+                "ext-fileinfo": "*",
+                "ext-gd": "*",
+                "ext-mysqli": "*",
+                "ext-pcntl": "*",
+                "ext-posix": "*",
+                "php": ">=8.0"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Avetify\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "A lightweight and easy to use framework on PHP.",
+            "homepage": "https://github.com/sadeghb97/avetify",
+            "keywords": [
+                "avetify",
+                "framework",
+                "microframework",
+                "php"
+            ],
+            "support": {
+                "issues": "https://github.com/sadeghb97/avetify/issues",
+                "source": "https://github.com/sadeghb97/avetify"
+            },
+            "time": "2026-03-25T04:02:18+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": {
+        "sadeghb97/avetify": 20
+    },
+    "prefer-stable": true,
+    "prefer-lowest": false,
+    "platform": {},
+    "platform-dev": {},
+    "plugin-api-version": "2.9.0"
+}

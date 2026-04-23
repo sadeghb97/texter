@@ -1,0 +1,13 @@
+{
+    "name": "sadeghb97/texter",
+    "authors": [
+        {
+            "name": "sadeghb97",
+            "email": "sadeghb97@gmail.com"
+        }
+    ],
+    "require": {
+        "sadeghb97/avetify": "dev-main"
+    },
+    "prefer-stable": true
+}
