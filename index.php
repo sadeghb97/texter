@@ -312,6 +312,31 @@ a:hover { color: #93c5fd; }
 .message-actions .btn{
     min-width: 78px;
 }
+
+/* Settings modal: compact & mobile-friendly */
+#settingsModal .modal-dialog{
+    max-width: 420px;
+}
+#settingsModal .list-group-item{
+    background: rgba(15, 23, 42, 0.55);
+    border: 0 !important;
+    color: var(--text);
+}
+#settingsModal .list-group-item:hover{
+    background: rgba(15, 23, 42, 0.72);
+}
+#settingsModal .list-group-item:focus{
+    outline: none;
+    box-shadow: none;
+}
+#settingsModal .settings-view-title{
+    font-size: 1.02rem;
+    margin: 0;
+}
+#settingsModal .settings-subtitle{
+    color: rgba(226, 232, 240, 0.65);
+    font-size: .92rem;
+}
 </style>
 </head>
 <body>
@@ -320,7 +345,17 @@ a:hover { color: #93c5fd; }
     <nav class="navbar bg-white shadow-sm app-header">
         <div class="container d-flex justify-content-between align-items-center">
             <span class="navbar-brand mb-0 h1"><?php echo $username; ?></span>
-            <a class="btn btn-outline-danger btn-sm" href="logout.php">Logout</a>
+            <div class="d-flex align-items-center gap-2">
+                <button
+                    type="button"
+                    class="btn btn-outline-light btn-sm"
+                    data-bs-toggle="modal"
+                    data-bs-target="#settingsModal"
+                >
+                    Settings
+                </button>
+                <a class="btn btn-outline-danger btn-sm" href="logout.php">Logout</a>
+            </div>
         </div>
     </nav>
 
@@ -413,6 +448,84 @@ a:hover { color: #93c5fd; }
     Paste from clipboard
 </button>
 <button id="sendToUsersBtn" type="button" class="btn btn-purple" onclick="sendToUsers()" disabled>Send</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalTitle" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+<div class="modal-content">
+<div class="modal-header">
+    <h5 class="modal-title" id="settingsModalTitle">Settings</h5>
+    <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <!-- Menu view -->
+    <div id="settingsMenuView">
+        <div class="settings-subtitle mb-2">Choose an option</div>
+        <div class="list-group" aria-label="Settings menu">
+            <button type="button" class="list-group-item list-group-item-action" data-settings-target="settings-change-password-view">
+                Change Password
+            </button>
+            <button type="button" class="list-group-item list-group-item-action" data-settings-target="settings-notifications-view">
+                Notifications
+            </button>
+            <button type="button" class="list-group-item list-group-item-action" data-settings-target="settings-privacy-view">
+                Privacy
+            </button>
+        </div>
+    </div>
+
+    <!-- Change Password view -->
+    <div id="settings-change-password-view" class="d-none">
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+            <h6 class="settings-view-title">Change Password</h6>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-settings-back>Back</button>
+        </div>
+
+        <form id="changePasswordForm" action="#" method="post" novalidate>
+            <div class="mb-3">
+                <label for="currentPassword" class="form-label">Current password</label>
+                <input type="password" class="form-control" id="currentPassword" autocomplete="current-password" required>
+            </div>
+
+            <div class="mb-2">
+                <label for="newPassword" class="form-label">New password</label>
+                <input type="password" class="form-control" id="newPassword" autocomplete="new-password" minlength="6" required>
+                <div class="form-text" style="color: rgba(226, 232, 240, 0.65);">Minimum length: 6</div>
+            </div>
+
+            <div class="mb-2">
+                <label for="confirmNewPassword" class="form-label">Confirm new password</label>
+                <input type="password" class="form-control" id="confirmNewPassword" autocomplete="new-password" minlength="6" required>
+            </div>
+
+            <div id="changePasswordHint" class="small mt-2" style="min-height: 1.25rem;"></div>
+
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button id="changePasswordSubmit" type="submit" class="btn btn-primary" disabled>Submit</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Placeholder views -->
+    <div id="settings-notifications-view" class="d-none">
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+            <h6 class="settings-view-title">Notifications</h6>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-settings-back>Back</button>
+        </div>
+        <div class="settings-subtitle">Coming soon.</div>
+    </div>
+
+    <div id="settings-privacy-view" class="d-none">
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+            <h6 class="settings-view-title">Privacy</h6>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-settings-back>Back</button>
+        </div>
+        <div class="settings-subtitle">Coming soon.</div>
+    </div>
 </div>
 </div>
 </div>
@@ -1079,6 +1192,183 @@ loadMessages();
     }
 
     updateSendToUsersButtonState();
+})();
+
+// --- Settings: Change Password validation (UI only) ---
+(() => {
+    const modalEl = document.getElementById("settingsModal");
+    const form = document.getElementById("changePasswordForm");
+    const currentEl = document.getElementById("currentPassword");
+    const newEl = document.getElementById("newPassword");
+    const confirmEl = document.getElementById("confirmNewPassword");
+    const hintEl = document.getElementById("changePasswordHint");
+    const submitBtn = document.getElementById("changePasswordSubmit");
+    const menuView = document.getElementById("settingsMenuView");
+
+    if (!modalEl || !menuView) return;
+    if (!form || !newEl || !confirmEl || !hintEl || !submitBtn) return;
+
+    const MIN_LEN = 6;
+    let didAttemptSubmit = false;
+    let isSubmitting = false;
+
+    const hideAllViews = () => {
+        menuView.classList.add("d-none");
+        modalEl.querySelectorAll("[id^='settings-'][id$='-view']").forEach((el) => {
+            el.classList.add("d-none");
+        });
+    };
+
+    const showMenu = () => {
+        hideAllViews();
+        menuView.classList.remove("d-none");
+        document.querySelector("#settingsMenuView button[data-settings-target]")?.focus();
+    };
+
+    const showView = (viewId) => {
+        const view = document.getElementById(viewId);
+        if (!view) return;
+        hideAllViews();
+        view.classList.remove("d-none");
+        view.querySelector("input,button,textarea,select")?.focus();
+    };
+
+    const validate = ({ showErrors } = {}) => {
+        const newVal = (newEl.value ?? "").trim();
+        const confirmVal = (confirmEl.value ?? "").trim();
+
+        let msg = "";
+        let ok = true;
+
+        if (newVal.length < MIN_LEN || confirmVal.length < MIN_LEN) {
+            ok = false;
+            msg = `Password must be at least ${MIN_LEN} characters.`;
+        } else if (newVal !== confirmVal) {
+            ok = false;
+            msg = "New passwords do not match.";
+        }
+
+        submitBtn.disabled = !ok;
+        if (showErrors) {
+            hintEl.style.color = ok ? "rgba(34, 197, 94, 0.95)" : "rgba(248, 113, 113, 0.95)";
+            hintEl.textContent = ok ? "" : msg;
+        } else {
+            hintEl.textContent = "";
+        }
+        return { ok, msg };
+    };
+
+    const reset = () => {
+        didAttemptSubmit = false;
+        isSubmitting = false;
+        if (currentEl) currentEl.value = "";
+        newEl.value = "";
+        confirmEl.value = "";
+        hintEl.textContent = "";
+        submitBtn.disabled = true;
+    };
+
+    const onInput = () => {
+        if (isSubmitting) return;
+        const { ok, msg } = validate({ showErrors: didAttemptSubmit });
+        if (didAttemptSubmit && !ok) {
+            hintEl.style.color = "rgba(248, 113, 113, 0.95)";
+            hintEl.textContent = msg;
+        }
+    };
+
+    newEl.addEventListener("input", onInput);
+    confirmEl.addEventListener("input", onInput);
+    currentEl?.addEventListener("input", onInput);
+
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+
+        didAttemptSubmit = true;
+        const { ok, msg } = validate({ showErrors: true });
+        if (!ok) {
+            hintEl.style.color = "rgba(248, 113, 113, 0.95)";
+            hintEl.textContent = msg;
+            return;
+        }
+
+        const currentVal = (currentEl?.value ?? "").trim();
+        if (!currentVal) {
+            hintEl.style.color = "rgba(248, 113, 113, 0.95)";
+            hintEl.textContent = "Current password is required.";
+            submitBtn.disabled = true;
+            return;
+        }
+
+        isSubmitting = true;
+        submitBtn.disabled = true;
+        const originalLabel = submitBtn.textContent || "Submit";
+        submitBtn.textContent = "Saving...";
+        hintEl.textContent = "";
+
+        fetch("api/change_password.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                current_password: currentVal,
+                new_password: (newEl.value ?? "").trim(),
+            }),
+        })
+        .then(async (res) => {
+            let data = null;
+            try { data = await res.clone().json(); } catch (_) {}
+            if (!res.ok) throw new Error(data?.error || "Failed to change password");
+            if (data?.error) throw new Error(data.error);
+            return data;
+        })
+        .then(() => {
+            hintEl.style.color = "rgba(34, 197, 94, 0.95)";
+            hintEl.textContent = "Password changed successfully.";
+            reset();
+            // keep success message visible after reset()
+            hintEl.style.color = "rgba(34, 197, 94, 0.95)";
+            hintEl.textContent = "Password changed successfully.";
+        })
+        .catch((err) => {
+            hintEl.style.color = "rgba(248, 113, 113, 0.95)";
+            hintEl.textContent = String(err?.message || "Failed to change password");
+        })
+        .finally(() => {
+            isSubmitting = false;
+            submitBtn.textContent = originalLabel;
+            if (didAttemptSubmit) {
+                // re-evaluate disabled state based on inputs
+                validate({ showErrors: false });
+            }
+        });
+    });
+
+    modalEl.addEventListener("click", (e) => {
+        const targetBtn = e.target?.closest?.("button[data-settings-target]");
+        if (targetBtn) {
+            const viewId = targetBtn.getAttribute("data-settings-target");
+            if (viewId) {
+                reset();
+                showView(viewId);
+            }
+            return;
+        }
+
+        const backBtn = e.target?.closest?.("button[data-settings-back]");
+        if (backBtn) {
+            showMenu();
+        }
+    });
+
+    modalEl.addEventListener("shown.bs.modal", () => {
+        reset();
+        showMenu();
+    });
+    modalEl.addEventListener("hidden.bs.modal", () => {
+        reset();
+        showMenu();
+    });
 })();
 </script>
 </body>
