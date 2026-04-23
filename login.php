@@ -51,6 +51,13 @@ if (!empty($_SESSION['user_id'])) {
         errorEl.style.display = "block";
     };
 
+    const fail = (msg, { focus = "password" } = {}) => {
+        if (passwordEl) passwordEl.value = "";
+        setError(msg);
+        if (focus === "username") usernameEl?.focus?.();
+        else passwordEl?.focus?.();
+    };
+
     form?.addEventListener("submit", async (e) => {
         e.preventDefault();
         setError("");
@@ -59,7 +66,7 @@ if (!empty($_SESSION['user_id'])) {
         const password = (passwordEl?.value ?? "");
 
         if (!username || !password) {
-            setError("Please fill in username and password.");
+            fail("Please fill in username and password.");
             return;
         }
 
@@ -82,27 +89,24 @@ if (!empty($_SESSION['user_id'])) {
             if (!res.ok || data?.error) {
                 const err = data?.error || "login_failed";
                 if (err === "wrong_password") {
-                    if (passwordEl) passwordEl.value = "";
-                    setError("Wrong password");
-                    passwordEl?.focus?.();
+                    fail("Wrong password");
                     return;
                 }
                 if (err === "username_not_found") {
-                    setError("Username not found");
-                    usernameEl?.focus?.();
+                    fail("Username not found", { focus: "username" });
                     return;
                 }
                 if (err === "missing_fields") {
-                    setError("Missing fields");
+                    fail("Missing fields");
                     return;
                 }
-                setError("Login failed");
+                fail("Login failed");
                 return;
             }
 
             window.location.href = "index.php";
         } catch (_) {
-            setError("Network error");
+            fail("Network error");
         } finally {
             if (submitBtn) {
                 submitBtn.disabled = false;
