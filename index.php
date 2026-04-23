@@ -219,7 +219,20 @@ a:hover { color: #93c5fd; }
     display: flex;
     flex-wrap: wrap;
     gap: .4rem;
+    margin: 0;
+}
+.recipient-tags-wrap{
     margin-top: .5rem;
+    padding: .6rem .65rem;
+    border-radius: .75rem;
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid var(--border);
+    min-height: 44px;
+}
+.recipient-tags:empty::before{
+    content: "No recipients selected";
+    color: rgba(226, 232, 240, 0.55);
+    font-size: .9rem;
 }
 .recipient-tag{
     display: inline-flex;
@@ -320,9 +333,11 @@ a:hover { color: #93c5fd; }
         <label class="form-label mb-1" for="recipientInput">Recipients</label>
         <input id="recipientInput" class="form-control" autocomplete="off" placeholder="Search by username or id..." />
         <div id="recipientSuggestions" class="recipient-suggestions list-group d-none" role="listbox" aria-label="Recipient suggestions"></div>
-        <div id="recipientTags" class="recipient-tags" aria-label="Selected recipients"></div>
         <div class="form-text" style="color: rgba(226, 232, 240, 0.65);">
             Select one or more recipients.
+        </div>
+        <div class="recipient-tags-wrap" aria-label="Selected recipients">
+            <div id="recipientTags" class="recipient-tags"></div>
         </div>
     </div>
     <textarea id="sendMessageInput" class="form-control" rows="4" placeholder="Type your message..."></textarea>
