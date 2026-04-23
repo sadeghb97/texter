@@ -104,7 +104,27 @@ a:hover { color: #93c5fd; }
     margin-left: .35rem; /* more breathing room */
 }
 .bottom-bar__send{
-    min-width: 140px;
+    min-width: 85px;
+    white-space: nowrap;
+    flex: 0 0 auto;
+}
+
+@media (max-width: 420px){
+    .bottom-bar{
+        padding: 10px 8px;
+    }
+    .bottom-bar__send{
+        min-width: 108px;
+        padding: .45rem .65rem;
+        font-size: .95rem;
+    }
+    .app-footer .page-link{
+        padding: .45rem .65rem;
+        font-size: .95rem;
+    }
+    .app-footer .page-item + .page-item{
+        margin-left: .25rem;
+    }
 }
 .message-box {
     background: var(--surface);
@@ -274,7 +294,7 @@ a:hover { color: #93c5fd; }
 
     <footer class="app-footer" aria-label="Message actions and pagination">
         <div class="container bottom-bar">
-            <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap bottom-bar__inner">
+            <div class="d-flex align-items-center gap-2 flex-wrap bottom-bar__inner">
                 <button
                     type="button"
                     class="btn btn-primary bottom-bar__send"
