@@ -8,6 +8,9 @@ session_set_cookie_params([
 ]);
 session_start();
 
+// Ensure consistent app timezone (GMT+3:30).
+date_default_timezone_set('Asia/Tehran');
+
 require_once "init_avt.php";
 require_once "env_configs.php";
 require_once "TexterConnection.php";

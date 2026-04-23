@@ -422,6 +422,25 @@ let currentPage = 1;
 const pageLimit = 10;
 const CURRENT_USER_ID = <?php echo (int)$userId; ?>;
 
+function formatTehranDateTime(unixSeconds) {
+    const ts = Number(unixSeconds);
+    if (!Number.isFinite(ts) || ts <= 0) return "";
+    const d = new Date(ts * 1000);
+    try {
+        return new Intl.DateTimeFormat("fa-IR-u-nu-latn", {
+            timeZone: "Asia/Tehran",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        }).format(d);
+    } catch (_) {
+        // Fallback: local timezone formatting if Intl/timeZone not available.
+        return d.toLocaleString();
+    }
+}
+
 function getMessageModalInstance() {
     const el = document.getElementById("messageModal");
     if (!el) return null;
@@ -473,10 +492,15 @@ function loadMessages(page = 1) {
         data.messages.forEach(msg => {
             const authorSafe = escapeHtml(msg.author);
             const textSafe = escapeHtml(msg.text);
+            const dt = formatTehranDateTime(msg.created_at);
+            const dtSafe = escapeHtml(dt);
             container.innerHTML += `
             <div class="message-box">
                 <div class="d-flex justify-content-between align-items-start gap-2">
-                    <small>${authorSafe}</small>
+                    <small>
+                        ${authorSafe}
+                        ${dtSafe ? `<span class="ms-2" style="color: rgba(226, 232, 240, 0.55);">(${dtSafe})</span>` : ``}
+                    </small>
                     <div class="d-inline-flex message-actions">
                         <button type="button" class="btn btn-sm btn-outline-info retext-btn">Retext</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary copy-btn">Copy</button>
