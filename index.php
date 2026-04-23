@@ -303,6 +303,13 @@ a:hover { color: #93c5fd; }
     line-height: 1;
 }
 .recipient-tag button:hover{ opacity: 1; }
+
+.message-actions{
+    gap: .65rem !important;
+}
+.message-actions .btn{
+    min-width: 78px;
+}
 </style>
 </head>
 <body>
@@ -469,7 +476,10 @@ function loadMessages(page = 1) {
             <div class="message-box">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <small>${authorSafe}</small>
-                    <button type="button" class="btn btn-sm btn-outline-secondary copy-btn">Copy</button>
+                    <div class="d-inline-flex message-actions">
+                        <button type="button" class="btn btn-sm btn-outline-info retext-btn">Retext</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary copy-btn">Copy</button>
+                    </div>
                 </div>
                 <div class="message-text" style="white-space: pre-wrap;">${textSafe}</div>
             </div>`;
@@ -887,6 +897,17 @@ loadMessages();
         const box = btn.closest(".message-box");
         const text = box?.querySelector?.(".message-text")?.innerText ?? "";
         copyText(btn, text);
+    });
+
+    // Retext button handler (event delegation).
+    document.getElementById("messages")?.addEventListener("click", (e) => {
+        const btn = e.target?.closest?.("button.retext-btn");
+        if (!btn) return;
+        const box = btn.closest(".message-box");
+        const text = box?.querySelector?.(".message-text")?.innerText ?? "";
+        setMessageText(text);
+        const modal = getMessageModalInstance();
+        modal?.show();
     });
 
     const input = document.getElementById("messageInput");
