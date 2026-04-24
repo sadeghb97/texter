@@ -13,7 +13,7 @@ function authCookieBaseParams(): array {
 
 function authCookieParams(): array {
     return [
-        'expires' => time() + (60 * 60 * 24 * 30),
+        'expires' => time() + (60 * 60 * 24 * AppConfigs::TOKEN_LIFETIME_DAYS),
         ...authCookieBaseParams(),
     ];
 }
@@ -41,12 +41,16 @@ function issueRememberMeToken(TexterConnection $conn, int $userId): ?string {
     }
     $tokenHash = hash('sha256', $token);
 
+    $days = (int)AppConfigs::TOKEN_LIFETIME_DAYS;
+    if ($days <= 0) $days = 30;
+    $expiresAt = date('Y-m-d H:i:s', time() + ($days * 86400));
+
     $stmt = $conn->prepare("
         INSERT INTO user_tokens (user_id, token_hash, expires_at)
-        VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))
+        VALUES (?, ?, ?)
     ");
     if (!$stmt) return null;
-    $stmt->bind_param("is", $userId, $tokenHash);
+    $stmt->bind_param("iss", $userId, $tokenHash, $expiresAt);
     if (!$stmt->execute()) return null;
 
     setRememberMeCookie($token);
