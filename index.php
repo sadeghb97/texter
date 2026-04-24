@@ -424,6 +424,15 @@ a:hover { color: #93c5fd; }
             <span class="navbar-brand mb-0 h1"><?php echo $username; ?></span>
             <div class="d-flex align-items-center gap-2">
                 <button
+                        type="button"
+                        class="btn btn-sm icon-btn icon-btn--header"
+                        onclick="refreshMessagesToFirstPage()"
+                        aria-label="Refresh messages"
+                        title="Refresh"
+                >
+                    <img src="assets/img/icons/refresh.svg" alt="" aria-hidden="true">
+                </button>
+                <button
                     type="button"
                     class="btn btn-sm icon-btn icon-btn--header"
                     data-bs-toggle="modal"
@@ -714,6 +723,10 @@ function loadMessages(page = 1) {
 
         renderPagination(Number(data.total_pages || 0));
     });
+}
+
+function refreshMessagesToFirstPage() {
+    loadMessages(1);
 }
 
 function renderPagination(total) {
