@@ -199,6 +199,78 @@ a:hover { color: #93c5fd; }
     color:#fff !important;
     font-weight:700;
 }
+/* --- Icon buttons (unified styling) --- */
+.icon-btn{
+    --icon-btn-bg: rgba(15, 23, 42, 0.32);
+    --icon-btn-bg-hover: rgba(59, 130, 246, 0.14);
+    --icon-btn-border: rgba(148, 163, 184, 0.22);
+    --icon-btn-border-hover: rgba(96, 165, 250, 0.55);
+    --icon-btn-icon: #dbc2c2;
+
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .35rem;
+    padding: .5rem .7rem;
+    border-radius: .6rem;
+    background: var(--icon-btn-bg);
+    border: 1px solid var(--icon-btn-border);
+    color: var(--text);
+    text-decoration: none;
+    line-height: 1;
+    transition: background .15s ease, border-color .15s ease, transform .05s ease;
+}
+.icon-btn:hover{
+    background: var(--icon-btn-bg-hover);
+    border-color: var(--icon-btn-border-hover);
+    color: var(--text);
+    text-decoration: none;
+}
+.icon-btn:active{ transform: translateY(1px); }
+.icon-btn:focus-visible{
+    outline: none;
+    box-shadow: 0 0 0 .2rem rgba(59, 130, 246, 0.25);
+}
+.icon-btn img{
+    width: 18px;
+    height: 18px;
+    display: block;
+    /* make SVGs with stroke/fill colors consistent */
+    filter: brightness(0) saturate(100%) invert(86%) sepia(6%) saturate(891%) hue-rotate(309deg) brightness(90%) contrast(88%);
+}
+
+/* Header icons (top navbar) */
+.icon-btn--header{
+    padding: .55rem .75rem;
+    border-radius: .65rem;
+}
+.icon-btn--header img{
+    width: 20px;
+    height: 20px;
+}
+
+/* Message box icons (per-message actions) */
+.icon-btn--msg{
+    padding: .5rem .8rem;
+    border-radius: .55rem;
+    min-width: 44px; /* comfortable touch target on mobile */
+}
+
+/* Copy "copied" state: different background + icon color */
+.copy-btn--copied{
+    background: rgba(25, 135, 84, 0.22) !important;
+    border-color: rgba(25, 135, 84, 0.55) !important;
+}
+.copy-btn--copied:hover{
+    /* no hover effect while copied */
+    background: rgba(25, 135, 84, 0.22) !important;
+    border-color: rgba(25, 135, 84, 0.55) !important;
+}
+.copy-btn--copied img{
+    /* green-ish */
+    filter: brightness(0) saturate(100%) invert(64%) sepia(54%) saturate(463%) hue-rotate(89deg) brightness(92%) contrast(92%);
+}
 
 /* Purple action button for "Message" */
 .btn-purple{
@@ -314,7 +386,7 @@ a:hover { color: #93c5fd; }
 .message-actions{
     gap: .65rem !important;
 }
-.message-actions .btn{
+.message-actions .btn:not(.icon-btn){
     min-width: 78px;
 }
 
@@ -353,13 +425,17 @@ a:hover { color: #93c5fd; }
             <div class="d-flex align-items-center gap-2">
                 <button
                     type="button"
-                    class="btn btn-outline-light btn-sm"
+                    class="btn btn-sm icon-btn icon-btn--header"
                     data-bs-toggle="modal"
                     data-bs-target="#settingsModal"
+                    aria-label="Settings"
+                    title="Settings"
                 >
-                    Settings
+                    <img src="assets/img/icons/setting.svg" alt="" aria-hidden="true">
                 </button>
-                <a class="btn btn-outline-danger btn-sm" href="logout.php">Logout</a>
+                <a class="btn btn-sm icon-btn icon-btn--header" href="logout.php" aria-label="Logout" title="Logout">
+                    <img src="assets/img/icons/logout.svg" alt="" aria-hidden="true">
+                </a>
             </div>
         </div>
     </nav>
@@ -624,8 +700,12 @@ function loadMessages(page = 1) {
                         ${dtSafe ? `<span class="ms-2" style="color: rgba(226, 232, 240, 0.55);">(${dtSafe})</span>` : ``}
                     </small>
                     <div class="d-inline-flex message-actions">
-                        <button type="button" class="btn btn-sm btn-outline-info retext-btn">Retext</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary copy-btn">Copy</button>
+                        <button type="button" class="btn btn-sm retext-btn icon-btn icon-btn--msg" aria-label="Retext" title="Retext">
+                            <img src="assets/img/icons/resend.svg" alt="" aria-hidden="true">
+                        </button>
+                        <button type="button" class="btn btn-sm copy-btn icon-btn icon-btn--msg" aria-label="Copy" title="Copy">
+                            <img src="assets/img/icons/clipboard-copy.svg" alt="" aria-hidden="true">
+                        </button>
                     </div>
                 </div>
                 <div class="message-text" style="white-space: pre-wrap;">${textSafe}</div>
@@ -993,13 +1073,17 @@ function sendToUsers() {
 }
 
 async function copyText(btn, text){
-    const originalText = btn?.textContent ?? "Copy";
     const originalDisabled = btn?.disabled ?? false;
     const originalClassName = btn?.className ?? "";
+    const originalAriaLabel = btn?.getAttribute?.("aria-label") ?? "Copy";
+    const originalTitle = btn?.getAttribute?.("title") ?? "Copy";
+    const iconEl = btn?.querySelector?.("img") || null;
+    const originalIconSrc = iconEl?.getAttribute?.("src") || "";
 
     const setState = (label, disabled) => {
         if (!btn) return;
-        btn.textContent = label;
+        btn.setAttribute("aria-label", label);
+        btn.setAttribute("title", label);
         btn.disabled = disabled;
     };
 
@@ -1022,15 +1106,26 @@ async function copyText(btn, text){
 
         setState("Copied!", true);
         if (btn) btn.classList.add("copy-btn--copied");
+        if (iconEl) iconEl.setAttribute("src", "assets/img/icons/check.svg");
         setTimeout(() => {
             if (btn) btn.className = originalClassName;
-            setState(originalText, originalDisabled);
+            if (iconEl && originalIconSrc) iconEl.setAttribute("src", originalIconSrc);
+            if (btn) {
+                btn.setAttribute("aria-label", originalAriaLabel);
+                btn.setAttribute("title", originalTitle);
+                btn.disabled = originalDisabled;
+            }
         }, 3000);
     } catch (e) {
         setState("Failed", true);
         setTimeout(() => {
             if (btn) btn.className = originalClassName;
-            setState(originalText, originalDisabled);
+            if (iconEl && originalIconSrc) iconEl.setAttribute("src", originalIconSrc);
+            if (btn) {
+                btn.setAttribute("aria-label", originalAriaLabel);
+                btn.setAttribute("title", originalTitle);
+                btn.disabled = originalDisabled;
+            }
         }, 1500);
     }
 }
