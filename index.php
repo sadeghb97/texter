@@ -1,5 +1,8 @@
 <?php
 require 'lib/library.php';
+
+use Avetify\Themes\Main\ThemesManager;
+
 requireLogin();
 
 $page_pk = 1;
@@ -15,7 +18,9 @@ $userId = $_SESSION['user_id'];
 <title>Profile</title>
 <link rel="icon" type="image/png" href="assets/img/favicon.png">
 <link rel="shortcut icon" type="image/png" href="assets/img/favicon.png">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<?php
+ThemesManager::importBootstrapCSS();
+?>
 <style>
 html, body { height: 100%; }
 body { background:#0f172a; color: #e2e8f0; overflow: hidden; }
@@ -531,7 +536,9 @@ a:hover { color: #93c5fd; }
 </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<?php
+ThemesManager::importBootstrapJS();
+?>
 <script>
 let currentPage = 1;
 const pageLimit = 10;
