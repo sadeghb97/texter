@@ -64,6 +64,9 @@ try {
     $_SESSION['user_id'] = $userId;
     $_SESSION['username'] = $username;
 
+    // Create remember_me token (stored hashed in DB)
+    issueRememberMeToken($conn, $userId);
+
     echo json_encode(['ok' => true, 'user' => ['id' => $userId, 'username' => $username]]);
     exit;
 } catch (Throwable $e) {

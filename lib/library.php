@@ -15,3 +15,6 @@ require_once "init_avt.php";
 require_once "env_configs.php";
 require_once "TexterConnection.php";
 require_once "auth.php";
+
+// Auto-login using remember_me cookie (if present).
+authBootstrap();
