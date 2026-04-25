@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/sadeghb97/avetify.git",
-                "reference": "927b08c03299c0691d43c325a61df4e39fac60f5"
+                "reference": "6d52082083046b29f26be3fe3d1109d610b01896"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/sadeghb97/avetify/zipball/927b08c03299c0691d43c325a61df4e39fac60f5",
-                "reference": "927b08c03299c0691d43c325a61df4e39fac60f5",
+                "url": "https://api.github.com/repos/sadeghb97/avetify/zipball/6d52082083046b29f26be3fe3d1109d610b01896",
+                "reference": "6d52082083046b29f26be3fe3d1109d610b01896",
                 "shasum": ""
             },
             "require": {
@@ -52,7 +52,7 @@
                 "issues": "https://github.com/sadeghb97/avetify/issues",
                 "source": "https://github.com/sadeghb97/avetify"
             },
-            "time": "2026-04-24T14:32:01+00:00"
+            "time": "2026-04-25T12:34:07+00:00"
         }
     ],
     "packages-dev": [],

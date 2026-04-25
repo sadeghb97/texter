@@ -54,6 +54,9 @@ try {
     // Create remember_me token (stored hashed in DB)
     issueRememberMeToken($conn, (int)$user['id']);
 
+    // Persist session immediately to avoid race with next navigation request.
+    session_write_close();
+
     echo json_encode(['ok' => true, 'user' => ['id' => (int)$user['id'], 'username' => $username]]);
     exit;
 } catch (Throwable $e) {

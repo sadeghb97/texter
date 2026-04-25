@@ -1,4 +1,10 @@
 <?php
+function rememberMeCookieName(): string {
+    // Use a different cookie name on HTTP to avoid collisions with an existing
+    // Secure remember_me cookie set earlier over HTTPS (which cannot be overwritten on HTTP).
+    return function_exists('isHttpsRequest') && isHttpsRequest() ? 'remember_me' : 'remember_me_http';
+}
+
 function authCookieBaseParams(): array {
     // Keep consistent with lib/library.php session_set_cookie_params()
     // by inheriting common flags from the active session cookie params.
@@ -20,15 +26,26 @@ function authCookieParams(): array {
 
 function setRememberMeCookie(string $token): void {
     $params = authCookieParams();
-    setcookie('remember_me', $token, $params);
+    setcookie(rememberMeCookieName(), $token, $params);
 }
 
 function clearRememberMeCookie(): void {
-    // Expire cookie
-    setcookie('remember_me', '', [
+    // Expire cookie (clear both Secure and non-Secure variants to avoid scheme flips).
+    $base = authCookieBaseParams();
+    $names = array_values(array_unique([rememberMeCookieName(), 'remember_me', 'remember_me_http']));
+    foreach ($names as $name) {
+        setcookie($name, '', ['expires' => time() - 3600, ...$base]);
+        setcookie($name, '', [
         'expires' => time() - 3600,
-        ...authCookieBaseParams(),
-    ]);
+        ...$base,
+        'secure' => true,
+        ]);
+        setcookie($name, '', [
+        'expires' => time() - 3600,
+        ...$base,
+        'secure' => false,
+        ]);
+    }
 }
 
 function issueRememberMeToken(TexterConnection $conn, int $userId): ?string {
@@ -70,9 +87,10 @@ function revokeRememberMeToken(TexterConnection $conn, string $rawToken): void {
 
 function authBootstrap(): void {
     if (!empty($_SESSION['user_id'])) return;
-    if (empty($_COOKIE['remember_me'])) return;
+    $cookieName = rememberMeCookieName();
+    if (empty($_COOKIE[$cookieName])) return;
 
-    $token = (string)$_COOKIE['remember_me'];
+    $token = (string)$_COOKIE[$cookieName];
     $token = trim($token);
     if ($token === '') {
         clearRememberMeCookie();
