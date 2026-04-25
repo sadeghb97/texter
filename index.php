@@ -257,6 +257,36 @@ a:hover { color: #93c5fd; }
     min-width: 44px; /* comfortable touch target on mobile */
 }
 
+/* Footer (bottom bar) icons: larger + bolder */
+.icon-btn--footer{
+    /* stronger look than header/msg */
+    --icon-btn-bg: rgba(15, 23, 42, 0.55);
+    --icon-btn-bg-hover: rgba(59, 130, 246, 0.22);
+    --icon-btn-border: rgba(148, 163, 184, 0.35);
+    --icon-btn-border-hover: rgba(96, 165, 250, 0.75);
+
+    padding: .7rem .95rem;
+    border-radius: .85rem;
+    min-width: 44px;
+    min-height: 44px; /* 48px+ tap target */
+}
+.icon-btn--footer img{
+    width: 24px;
+    height: 24px;
+}
+.icon-btn--footer.icon-btn--footer-create{
+    --icon-btn-bg: rgba(59, 130, 246, 0.22);
+    --icon-btn-bg-hover: rgba(59, 130, 246, 0.32);
+    --icon-btn-border: rgba(59, 130, 246, 0.55);
+    --icon-btn-border-hover: rgba(59, 130, 246, 0.8);
+}
+.icon-btn--footer.icon-btn--footer-message{
+    --icon-btn-bg: rgba(124, 58, 237, 0.22);
+    --icon-btn-bg-hover: rgba(124, 58, 237, 0.32);
+    --icon-btn-border: rgba(124, 58, 237, 0.55);
+    --icon-btn-border-hover: rgba(124, 58, 237, 0.82);
+}
+
 /* Copy "copied" state: different background + icon color */
 .copy-btn--copied{
     background: rgba(25, 135, 84, 0.22) !important;
@@ -462,23 +492,29 @@ a:hover { color: #93c5fd; }
                     <ul class="pagination justify-content-start" id="pagination"></ul>
                 </nav>
 
-                <div class="d-flex align-items-center gap-2 ms-auto flex-wrap">
+                <div class="d-flex align-items-center gap-3 ms-auto flex-wrap">
                     <button
-                        type="button"
-                        class="btn btn-primary bottom-bar__send"
-                        data-bs-toggle="modal"
-                        data-bs-target="#messageModal"
+                            type="button"
+                            class="btn icon-btn icon-btn--footer icon-btn--footer-message"
+                            data-bs-toggle="modal"
+                            data-bs-target="#sendMessageModal"
+                            aria-label="Message"
+                            title="Message"
                     >
-                        Create
+                        <img src="assets/img/icons/message.svg" alt="" aria-hidden="true">
+                        <span class="visually-hidden">Message</span>
                     </button>
 
                     <button
                         type="button"
-                        class="btn btn-purple bottom-bar__send"
+                        class="btn icon-btn icon-btn--footer icon-btn--footer-create"
                         data-bs-toggle="modal"
-                        data-bs-target="#sendMessageModal"
+                        data-bs-target="#messageModal"
+                        aria-label="Create"
+                        title="Create"
                     >
-                        Message
+                        <img src="assets/img/icons/create.svg" alt="" aria-hidden="true">
+                        <span class="visually-hidden">Create</span>
                     </button>
                 </div>
             </div>
