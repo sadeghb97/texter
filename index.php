@@ -456,6 +456,61 @@ a:hover { color: #93c5fd; }
     color: rgba(226, 232, 240, 0.65);
     font-size: .92rem;
 }
+
+/* --- Messages loading overlay --- */
+.messages-wrap{
+    position: relative;
+    min-height: 160px; /* prevents "jump" on empty state */
+}
+.messages-loading{
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px;
+    z-index: 1090; /* above content, below bootstrap modals (1055+) but we want above page */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .16s ease;
+}
+.messages-loading.is-visible{
+    opacity: 1;
+    pointer-events: auto; /* block clicks while loading */
+}
+.messages-loading__backdrop{
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.62);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.messages-loading__card{
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: .7rem;
+    padding: .85rem 1rem;
+    border-radius: 999px;
+    background: rgba(30, 41, 59, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+}
+.messages-loading__label{
+    color: rgba(226, 232, 240, 0.9);
+    font-size: .98rem;
+    letter-spacing: .2px;
+    user-select: none;
+}
+.messages-loading .spinner-border{
+    width: 1.15rem;
+    height: 1.15rem;
+    border-width: .17rem;
+    color: #60a5fa;
+}
+@media (prefers-reduced-motion: reduce){
+    .messages-loading{ transition: none; }
+}
 </style>
 </head>
 <body>
@@ -493,7 +548,9 @@ a:hover { color: #93c5fd; }
 
     <main class="app-content" aria-label="Messages">
         <div class="container">
-            <div id="messages"></div>
+            <div class="messages-wrap" aria-busy="false" aria-live="polite">
+                <div id="messages"></div>
+            </div>
         </div>
     </main>
 
@@ -532,6 +589,14 @@ a:hover { color: #93c5fd; }
             </div>
         </div>
     </footer>
+</div>
+
+<div id="messagesLoading" class="messages-loading" role="status" aria-label="Loading messages" aria-hidden="true">
+    <div class="messages-loading__backdrop" aria-hidden="true"></div>
+    <div class="messages-loading__card">
+        <span class="spinner-border" aria-hidden="true"></span>
+        <span class="messages-loading__label">Loading messages…</span>
+    </div>
 </div>
 
 <div class="modal fade" id="messageModal">
@@ -695,6 +760,21 @@ let currentPage = 1;
 const pageLimit = 10;
 const CURRENT_USER_ID = <?php echo (int)$userId; ?>;
 
+const messagesLoadingState = { count: 0 };
+function setMessagesLoading(isLoading) {
+    const overlay = document.getElementById("messagesLoading");
+    const wrap = document.querySelector(".messages-wrap");
+    if (!overlay) return;
+
+    if (isLoading) messagesLoadingState.count += 1;
+    else messagesLoadingState.count = Math.max(0, messagesLoadingState.count - 1);
+
+    const visible = messagesLoadingState.count > 0;
+    overlay.classList.toggle("is-visible", visible);
+    overlay.setAttribute("aria-hidden", visible ? "false" : "true");
+    if (wrap) wrap.setAttribute("aria-busy", visible ? "true" : "false");
+}
+
 function formatTehranDateTime(unixSeconds) {
     const ts = Number(unixSeconds);
     if (!Number.isFinite(ts) || ts <= 0) return "";
@@ -739,16 +819,26 @@ function updateSendButtonState() {
     btn.disabled = getMessageText().trim().length === 0;
 }
 
-function loadMessages(page = 1) {
+async function loadMessages(page = 1) {
     currentPage = page;
-    fetch(`api/get_messages.php?page=${page}&limit=${pageLimit}`)
-    .then(res => res.json())
-    .then(data => {
+    setMessagesLoading(true);
+    try {
+        const res = await fetch(`api/get_messages.php?page=${page}&limit=${pageLimit}`);
+        const data = await res.json();
+
         const container = document.getElementById("messages");
+        if (!container) return;
         container.innerHTML = "";
 
+        if (!res.ok) {
+            const msg = (data?.error || "Failed to load messages");
+            container.innerHTML = `<div class="alert alert-warning mb-2">${String(msg)}</div>`;
+            renderPagination(0);
+            return;
+        }
+
         if (data?.error) {
-            container.innerHTML = `<div class="alert alert-warning mb-2">${data.error}</div>`;
+            container.innerHTML = `<div class="alert alert-warning mb-2">${String(data.error)}</div>`;
             renderPagination(0);
             return;
         }
@@ -762,13 +852,20 @@ function loadMessages(page = 1) {
                 .replaceAll("'", "&#039;");
         };
 
-        data.messages.forEach(msg => {
-            const authorSafe = escapeHtml(msg.author);
-            const textSafe = escapeHtml(msg.text);
-            const dt = formatTehranDateTime(msg.created_at);
+        const messages = Array.isArray(data?.messages) ? data.messages : [];
+        if (!messages.length) {
+            container.innerHTML = `<div class="alert alert-secondary mb-2" style="background: rgba(30,41,59,.55); border-color: rgba(148,163,184,.18); color: rgba(226,232,240,.9);">No messages yet.</div>`;
+            renderPagination(Number(data?.total_pages || 0));
+            return;
+        }
+
+        container.innerHTML = messages.map((msg) => {
+            const authorSafe = escapeHtml(msg?.author);
+            const textSafe = escapeHtml(msg?.text);
+            const dt = formatTehranDateTime(msg?.created_at);
             const dtSafe = escapeHtml(dt);
-            const msgPk = Number(msg.pk || 0);
-            container.innerHTML += `
+            const msgPk = Number(msg?.pk || 0);
+            return `
             <div class="message-box" data-message-pk="${msgPk}">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <small>
@@ -789,10 +886,18 @@ function loadMessages(page = 1) {
                 </div>
                 <div class="message-text" style="white-space: pre-wrap;">${textSafe}</div>
             </div>`;
-        });
+        }).join("");
 
-        renderPagination(Number(data.total_pages || 0));
-    });
+        renderPagination(Number(data?.total_pages || 0));
+    } catch (_) {
+        const container = document.getElementById("messages");
+        if (container) {
+            container.innerHTML = `<div class="alert alert-warning mb-2">Network error while loading messages.</div>`;
+        }
+        renderPagination(0);
+    } finally {
+        setMessagesLoading(false);
+    }
 }
 
 function refreshMessagesToFirstPage() {
