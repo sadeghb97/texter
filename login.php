@@ -40,6 +40,31 @@ if (!empty($_SESSION[appSessionKey('user_id')])) {
     const passwordEl = document.getElementById("password");
     const submitBtn = document.getElementById("loginSubmit");
 
+    // On mobile, virtual keyboards can overlap centered layouts.
+    // Ensure the focused field stays visible.
+    const scrollFieldIntoView = (el) => {
+        if (!el || typeof el.scrollIntoView !== "function") return;
+        // Defer until after the keyboard/viewport has adjusted.
+        setTimeout(() => {
+            try {
+                el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+            } catch (_) {
+                el.scrollIntoView(true);
+            }
+        }, 250);
+    };
+
+    document.addEventListener(
+        "focusin",
+        (e) => {
+            const t = e.target;
+            if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) {
+                scrollFieldIntoView(t);
+            }
+        },
+        { passive: true }
+    );
+
     const setError = (msg) => {
         if (!errorEl) return;
         if (!msg) {

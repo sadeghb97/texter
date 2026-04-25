@@ -5,12 +5,18 @@ body {
     color: white;
 }
 
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 .container {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    height: auto;
+    min-height: 100vh;
     padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
 .card {
@@ -22,6 +28,20 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+@media (max-width: 600px), (max-height: 700px) {
+    .container {
+        align-items: flex-start;
+        padding-top: 24px;
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+@supports (height: 100svh) {
+    .container { min-height: 100svh; }
 }
 
 input {
