@@ -257,6 +257,18 @@ a:hover { color: #93c5fd; }
     min-width: 44px; /* comfortable touch target on mobile */
 }
 
+/* Message delete icon: red hover exception */
+.icon-btn--danger:hover{
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.65);
+}
+.icon-btn--danger:focus-visible{
+    box-shadow: 0 0 0 .2rem rgba(239, 68, 68, 0.25);
+}
+.icon-btn--danger img{
+    filter: brightness(0) saturate(100%) invert(74%) sepia(21%) saturate(2557%) hue-rotate(314deg) brightness(100%) contrast(94%);
+}
+
 /* Footer (bottom bar) icons: larger + bolder */
 .icon-btn--footer{
     /* stronger look than header/msg */
@@ -579,6 +591,24 @@ a:hover { color: #93c5fd; }
 </div>
 </div>
 
+<div class="modal fade" id="deleteMessageModal" tabindex="-1" aria-labelledby="deleteMessageModalTitle" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered">
+<div class="modal-content">
+<div class="modal-header">
+    <h5 class="modal-title" id="deleteMessageModalTitle">Delete message</h5>
+    <button id="deleteMessageCloseX" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    Are you sure?
+</div>
+<div class="modal-footer">
+    <button id="deleteMessageCancelBtn" type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button id="deleteMessageConfirmBtn" type="button" class="btn btn-danger">Delete</button>
+</div>
+</div>
+</div>
+</div>
+
 <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalTitle" aria-hidden="true">
 <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
 <div class="modal-content">
@@ -737,14 +767,18 @@ function loadMessages(page = 1) {
             const textSafe = escapeHtml(msg.text);
             const dt = formatTehranDateTime(msg.created_at);
             const dtSafe = escapeHtml(dt);
+            const msgPk = Number(msg.pk || 0);
             container.innerHTML += `
-            <div class="message-box">
+            <div class="message-box" data-message-pk="${msgPk}">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <small>
                         ${authorSafe}
                         ${dtSafe ? `<span class="ms-2" style="color: rgba(226, 232, 240, 0.55);">(${dtSafe})</span>` : ``}
                     </small>
                     <div class="d-inline-flex message-actions">
+                        <button type="button" class="btn btn-sm delete-btn icon-btn icon-btn--msg icon-btn--danger" aria-label="Delete" title="Delete" data-message-pk="${msgPk}">
+                            <img src="assets/img/icons/delete.svg" alt="" aria-hidden="true">
+                        </button>
                         <button type="button" class="btn btn-sm retext-btn icon-btn icon-btn--msg" aria-label="Retext" title="Retext">
                             <img src="assets/img/icons/resend.svg" alt="" aria-hidden="true">
                         </button>
@@ -1121,6 +1155,72 @@ function sendToUsers() {
     });
 }
 
+// --- Delete message modal helpers ---
+function getDeleteModalInstance() {
+    const el = document.getElementById("deleteMessageModal");
+    if (!el) return null;
+    return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+}
+
+const deleteState = {
+    messagePk: null,
+    isSubmitting: false,
+};
+
+function setDeleteUiSubmitting(isSubmitting) {
+    deleteState.isSubmitting = !!isSubmitting;
+    const confirmBtn = document.getElementById("deleteMessageConfirmBtn");
+    const cancelBtn = document.getElementById("deleteMessageCancelBtn");
+    const closeX = document.getElementById("deleteMessageCloseX");
+    if (!confirmBtn || !cancelBtn) return;
+
+    if (isSubmitting) {
+        cancelBtn.disabled = true;
+        if (closeX) closeX.disabled = true;
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deleting...`;
+    } else {
+        cancelBtn.disabled = false;
+        if (closeX) closeX.disabled = false;
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = "Delete";
+    }
+}
+
+function openDeleteModal(messagePk) {
+    const pk = Number(messagePk || 0);
+    if (!pk || pk <= 0) return;
+    deleteState.messagePk = pk;
+    setDeleteUiSubmitting(false);
+    getDeleteModalInstance()?.show();
+}
+
+async function confirmDeleteMessage() {
+    if (deleteState.isSubmitting) return;
+    const pk = Number(deleteState.messagePk || 0);
+    if (!pk || pk <= 0) return;
+
+    setDeleteUiSubmitting(true);
+    try {
+        const res = await fetch("api/delete_message.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message_pk: pk }),
+        });
+        let data = null;
+        try { data = await res.clone().json(); } catch (_) {}
+        if (!res.ok) throw new Error(data?.error || "Delete failed");
+        if (data?.error) throw new Error(data.error);
+
+        getDeleteModalInstance()?.hide();
+        loadMessages(currentPage);
+    } catch (_) {
+        // Keep modal open so user can retry.
+    } finally {
+        setDeleteUiSubmitting(false);
+    }
+}
+
 async function copyText(btn, text){
     const originalDisabled = btn?.disabled ?? false;
     const originalClassName = btn?.className ?? "";
@@ -1201,6 +1301,21 @@ loadMessages();
         setMessageText(text);
         const modal = getMessageModalInstance();
         modal?.show();
+    });
+
+    // Delete button handler (event delegation).
+    document.getElementById("messages")?.addEventListener("click", (e) => {
+        const btn = e.target?.closest?.("button.delete-btn");
+        if (!btn) return;
+        const pk = Number(btn.getAttribute("data-message-pk") || 0);
+        openDeleteModal(pk);
+    });
+
+    // Delete modal handlers.
+    document.getElementById("deleteMessageConfirmBtn")?.addEventListener("click", confirmDeleteMessage);
+    document.getElementById("deleteMessageModal")?.addEventListener("hidden.bs.modal", () => {
+        deleteState.messagePk = null;
+        setDeleteUiSubmitting(false);
     });
 
     const input = document.getElementById("messageInput");
