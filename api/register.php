@@ -61,8 +61,8 @@ try {
 
     // Auto-login on successful registration
     session_regenerate_id(true);
-    $_SESSION['user_id'] = $userId;
-    $_SESSION['username'] = $username;
+    $_SESSION[appSessionKey('user_id')] = $userId;
+    $_SESSION[appSessionKey('username')] = $username;
 
     // Create remember_me token (stored hashed in DB)
     issueRememberMeToken($conn, $userId);

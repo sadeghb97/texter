@@ -1,15 +1,9 @@
 <?php
 require_once "AppConfigs.php";
-
-function isHttpsRequest(): bool {
-    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') return true;
-    if (!empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443) return true;
-    // Common reverse-proxy header (if present)
-    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') return true;
-    return false;
-}
+require_once "utils.php";
 
 $isHttps = isHttpsRequest();
+
 // Avoid collisions with pre-existing Secure cookies when serving over HTTP.
 // Browsers may reject setting a non-Secure cookie if a Secure cookie with the
 // same name already exists for this site.

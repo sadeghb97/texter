@@ -4,7 +4,7 @@ $conn = new TexterConnection();
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION['user_id'])) {
+if (empty($_SESSION[appSessionKey('user_id')])) {
     http_response_code(401);
     echo json_encode(["error" => "unauthorized"]);
     exit;
@@ -31,7 +31,7 @@ if ($profilePkInput === null) {
 
 $text = $conn->real_escape_string($rawText);
 $createdAt = time();
-$authorPk = (int)$_SESSION['user_id'];
+$authorPk = (int)$_SESSION[appSessionKey('user_id')];
 
 // Normalize profile_pk to a unique list of positive ints.
 $profilePks = [];

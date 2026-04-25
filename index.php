@@ -6,8 +6,8 @@ use Avetify\Themes\Main\ThemesManager;
 requireLogin();
 
 $page_pk = 1;
-$username = $_SESSION['username'];
-$userId = $_SESSION['user_id'];
+$username = $_SESSION[appSessionKey('username')];
+$userId = $_SESSION[appSessionKey('user_id')];
 ?>
 
 <!DOCTYPE html>

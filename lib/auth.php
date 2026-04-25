@@ -86,7 +86,7 @@ function revokeRememberMeToken(TexterConnection $conn, string $rawToken): void {
 }
 
 function authBootstrap(): void {
-    if (!empty($_SESSION['user_id'])) return;
+    if (!empty($_SESSION[appSessionKey('user_id')])) return;
     $cookieName = rememberMeCookieName();
     if (empty($_COOKIE[$cookieName])) return;
 
@@ -127,8 +127,8 @@ function authBootstrap(): void {
         revokeRememberMeToken($conn, $token);
 
         session_regenerate_id(true);
-        $_SESSION['user_id'] = (int)$row['user_id'];
-        $_SESSION['username'] = (string)($row['username'] ?? '');
+        $_SESSION[appSessionKey('user_id')] = (int)$row['user_id'];
+        $_SESSION[appSessionKey('username')] = (string)($row['username'] ?? '');
 
         issueRememberMeToken($conn, (int)$row['user_id']);
     } catch (Throwable $_) {
@@ -140,7 +140,7 @@ function authBootstrap(): void {
 
 function requireLogin() {
     authBootstrap();
-    if (empty($_SESSION['user_id'])) {
+    if (empty($_SESSION[appSessionKey('user_id')])) {
         header("Location: login.php");
         exit;
     }

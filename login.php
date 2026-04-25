@@ -1,7 +1,7 @@
 <?php
 require 'lib/library.php';
 
-if (!empty($_SESSION['user_id'])) {
+if (!empty($_SESSION[appSessionKey('user_id')])) {
     header("Location: index.php");
     exit;
 }

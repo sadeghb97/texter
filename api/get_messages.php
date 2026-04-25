@@ -3,7 +3,7 @@ include '../lib/library.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION['user_id'])) {
+if (empty($_SESSION[appSessionKey('user_id')])) {
     http_response_code(401);
     echo json_encode(["error" => "unauthorized"]);
     exit;
@@ -19,7 +19,7 @@ if ($limit < 1) $limit = 5;
 if ($limit > 50) $limit = 50;
 
 $offset = ($page - 1) * $limit;
-$profilePk = (int)$_SESSION['user_id'];
+$profilePk = (int)$_SESSION[appSessionKey('user_id')];
 
 $totalRow = $conn
     ->query("SELECT COUNT(*) as cnt FROM messages m WHERE m.profile_pk = $profilePk")

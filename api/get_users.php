@@ -3,7 +3,7 @@ include '../lib/library.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION['user_id'])) {
+if (empty($_SESSION[appSessionKey('user_id')])) {
     http_response_code(401);
     echo json_encode(["error" => "unauthorized"]);
     exit;
@@ -16,7 +16,7 @@ $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
 if ($limit < 1) $limit = 10;
 if ($limit > 30) $limit = 30;
 
-$currentUserId = (int)$_SESSION['user_id'];
+$currentUserId = (int)$_SESSION[appSessionKey('user_id')];
 
 // If query is empty, return empty list to avoid dumping users.
 if ($q === '') {
