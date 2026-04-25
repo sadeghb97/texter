@@ -82,7 +82,8 @@ a:hover { color: #93c5fd; }
     -webkit-backdrop-filter: blur(10px);
     border-top: 1px solid var(--border);
     box-shadow: 0 -10px 24px rgba(0,0,0,0.35);
-    padding-bottom: env(safe-area-inset-bottom);
+    /* Real mobile devices may report large safe-area insets (gesture/home bar). Clamp it. */
+    padding-bottom: min(env(safe-area-inset-bottom, 0px), 16px);
 }
 .bottom-bar{
     padding: 10px 10px;
