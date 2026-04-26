@@ -1,10 +1,11 @@
 <?php
 include '../lib/library.php';
-$conn = new TexterConnection();
-
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION[appSessionKey('user_id')])) {
+$conn = new TexterConnection();
+$auth = new TexterAuth();
+
+if (!$auth->isLoggedIn()) {
     http_response_code(401);
     echo json_encode(["error" => "unauthorized"]);
     exit;
@@ -31,7 +32,7 @@ if ($profilePkInput === null) {
 
 $text = $conn->real_escape_string($rawText);
 $createdAt = time();
-$authorPk = (int)$_SESSION[appSessionKey('user_id')];
+$authorPk = (int)$auth->currentUserId();
 
 // Normalize profile_pk to a unique list of positive ints.
 $profilePks = [];

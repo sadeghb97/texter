@@ -1,7 +1,11 @@
 <?php
 require 'lib/library.php';
 
-if (!empty($_SESSION[appSessionKey('user_id')])) {
+$conn = new TexterConnection();
+$auth = new TexterAuth();
+$auth->bootstrapRememberMe($conn);
+
+if ($auth->isLoggedIn()) {
     header("Location: index.php");
     exit;
 }

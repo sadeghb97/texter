@@ -1,15 +1,15 @@
 <?php
 include '../lib/library.php';
-
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION[appSessionKey('user_id')])) {
+$conn = new TexterConnection();
+$auth = new TexterAuth();
+
+if (!$auth->isLoggedIn()) {
     http_response_code(401);
     echo json_encode(["error" => "unauthorized"]);
     exit;
 }
-
-$conn = new TexterConnection();
 
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
@@ -19,7 +19,7 @@ if ($limit < 1) $limit = 5;
 if ($limit > 50) $limit = 50;
 
 $offset = ($page - 1) * $limit;
-$profilePk = (int)$_SESSION[appSessionKey('user_id')];
+$profilePk = (int)$auth->currentUserId();
 
 $totalRow = $conn
     ->query("SELECT COUNT(*) as cnt FROM messages m WHERE m.profile_pk = $profilePk")

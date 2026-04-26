@@ -3,11 +3,13 @@ require 'lib/library.php';
 
 use Avetify\Themes\Main\ThemesManager;
 
-requireLogin();
+$conn = new TexterConnection();
+$auth = new TexterAuth();
+$auth->requireLogin($conn);
 
 $page_pk = 1;
-$username = $_SESSION[appSessionKey('username')];
-$userId = $_SESSION[appSessionKey('user_id')];
+$username = $auth->currentUsername();
+$userId = $auth->currentUserId();
 ?>
 
 <!DOCTYPE html>

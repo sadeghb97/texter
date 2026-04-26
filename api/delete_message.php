@@ -3,7 +3,10 @@ include '../lib/library.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION[appSessionKey('user_id')])) {
+$conn = new TexterConnection();
+$auth = new TexterAuth();
+
+if (!$auth->isLoggedIn()) {
     http_response_code(401);
     echo json_encode(["error" => "unauthorized"]);
     exit;
@@ -23,8 +26,7 @@ if ($messagePk <= 0) {
     exit;
 }
 
-$profilePk = (int)$_SESSION[appSessionKey('user_id')];
-$conn = new TexterConnection();
+$profilePk = (int)$auth->currentUserId();
 
 // User can only delete messages that belong to their own page (profile_pk).
 $conn->query("DELETE FROM messages WHERE pk = $messagePk AND profile_pk = $profilePk LIMIT 1");

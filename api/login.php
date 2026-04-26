@@ -26,42 +26,21 @@ if ($username === '' || $password === '') {
     exit;
 }
 
+$conn = new TexterConnection();
 try {
-    $conn = new TexterConnection();
-
-    $stmt = $conn->prepare("SELECT id, password FROM users WHERE username = ? LIMIT 1");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result ? $result->fetch_assoc() : null;
-
-    if (!$user) {
-        http_response_code(404);
-        echo json_encode(['error' => 'username_not_found']);
+    $auth = new TexterAuth();
+    $res = $auth->login($conn, $username, $password);
+    if (!($res['ok'] ?? false)) {
+        $err = (string)($res['error'] ?? 'login_failed');
+        if ($err === 'username_not_found') http_response_code(404);
+        else http_response_code(400);
+        echo json_encode(['error' => $err]);
         exit;
     }
-
-    if (!password_verify($password, (string)($user['password'] ?? ''))) {
-        http_response_code(400);
-        echo json_encode(['error' => 'wrong_password']);
-        exit;
-    }
-
-    session_regenerate_id(true);
-    $_SESSION[appSessionKey('user_id')] = (int)$user['id'];
-    $_SESSION[appSessionKey('username')] = $username;
-
-    // Create remember_me token (stored hashed in DB)
-    issueRememberMeToken($conn, (int)$user['id']);
-
-    // Persist session immediately to avoid race with next navigation request.
-    session_write_close();
-
-    echo json_encode(['ok' => true, 'user' => ['id' => (int)$user['id'], 'username' => $username]]);
-    exit;
+    echo json_encode($res);
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['error' => 'server_error']);
-    exit;
 }
+$conn->close();
 

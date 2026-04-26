@@ -3,20 +3,21 @@ include '../lib/library.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-if (empty($_SESSION[appSessionKey('user_id')])) {
+$conn = new TexterConnection();
+$auth = new TexterAuth();
+
+if (!$auth->isLoggedIn()) {
     http_response_code(401);
     echo json_encode(["error" => "unauthorized"]);
     exit;
 }
-
-$conn = new TexterConnection();
 
 $q = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
 $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
 if ($limit < 1) $limit = 10;
 if ($limit > 30) $limit = 30;
 
-$currentUserId = (int)$_SESSION[appSessionKey('user_id')];
+$currentUserId = (int)$auth->currentUserId();
 
 // If query is empty, return empty list to avoid dumping users.
 if ($q === '') {

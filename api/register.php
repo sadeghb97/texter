@@ -38,43 +38,21 @@ if (strlen($password) < 4) {
     exit;
 }
 
+$conn = new TexterConnection();
 try {
-    $conn = new TexterConnection();
-
-    $hash = password_hash($password, PASSWORD_DEFAULT);
-    $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-    $stmt->bind_param("ss", $username, $hash);
-
-    if (!$stmt->execute()) {
-        // Most likely duplicate username (unique constraint), but avoid leaking DB details.
-        http_response_code(409);
-        echo json_encode(['error' => 'username_exists']);
+    $auth = new TexterAuth();
+    $res = $auth->register($conn, $username, $password);
+    if (!($res['ok'] ?? false)) {
+        $err = (string)($res['error'] ?? 'register_failed');
+        if ($err === 'username_exists') http_response_code(409);
+        else http_response_code(400);
+        echo json_encode(['error' => $err]);
         exit;
     }
-
-    $userId = (int)$stmt->insert_id;
-    if ($userId <= 0) {
-        http_response_code(500);
-        echo json_encode(['error' => 'server_error']);
-        exit;
-    }
-
-    // Auto-login on successful registration
-    session_regenerate_id(true);
-    $_SESSION[appSessionKey('user_id')] = $userId;
-    $_SESSION[appSessionKey('username')] = $username;
-
-    // Create remember_me token (stored hashed in DB)
-    issueRememberMeToken($conn, $userId);
-
-    // Persist session immediately to avoid race with next navigation request.
-    session_write_close();
-
-    echo json_encode(['ok' => true, 'user' => ['id' => $userId, 'username' => $username]]);
-    exit;
+    echo json_encode($res);
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['error' => 'server_error']);
-    exit;
 }
+$conn->close();
 
