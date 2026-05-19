@@ -63,7 +63,7 @@ $inserted = 0;
 foreach ($profilePks as $profilePk) {
     $profilePk = (int)$profilePk;
     if ($profilePk <= 0) continue;
-    $conn->query("INSERT INTO messages (text, author_pk, profile_pk, created_at) VALUES ('$text',$authorPk, $profilePk, $createdAt)");
+    $conn->query("INSERT INTO messages (text, author_pk, profile_pk, created_at, public) VALUES ('$text',$authorPk, $profilePk, $createdAt, 0)");
     if ($conn->affected_rows > 0) $inserted++;
 }
 

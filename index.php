@@ -56,9 +56,11 @@ a:hover { color: #93c5fd; }
 }
 .app-header .navbar-brand{
     color: var(--text);
+    text-decoration: none;
 }
 .app-header .navbar-brand:hover{
     color: #ffffff;
+    text-decoration: none;
 }
 .app-header .btn-outline-danger{
     border-color: rgba(248, 113, 113, 0.55);
@@ -309,6 +311,74 @@ a:hover { color: #93c5fd; }
     /* green-ish */
     filter: brightness(0) saturate(100%) invert(64%) sepia(54%) saturate(463%) hue-rotate(89deg) brightness(92%) contrast(92%);
 }
+.icon-btn--msg.copy-btn--copied{
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+}
+
+/* Public message icon — active when message is public */
+.icon-btn--public-active{
+    --icon-btn-bg: rgba(56, 189, 248, 0.2);
+    --icon-btn-bg-hover: rgba(56, 189, 248, 0.28);
+    --icon-btn-border: rgba(56, 189, 248, 0.5);
+    --icon-btn-border-hover: rgba(56, 189, 248, 0.72);
+}
+.icon-btn--public-active img{
+    filter: brightness(0) saturate(100%) invert(78%) sepia(42%) saturate(900%) hue-rotate(166deg) brightness(102%) contrast(96%);
+}
+
+/* Public / private modal */
+.public-modal-status{
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem .65rem;
+    border-radius: 999px;
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    border: 1px solid var(--border);
+}
+.public-modal-status--public{
+    background: rgba(56, 189, 248, 0.14);
+    border-color: rgba(56, 189, 248, 0.35);
+    color: #bae6fd;
+}
+.public-modal-status--private{
+    background: rgba(148, 163, 184, 0.12);
+    color: rgba(226, 232, 240, 0.85);
+}
+.public-link-field{
+    display: flex;
+    gap: .5rem;
+    align-items: stretch;
+}
+.public-link-field .form-control{
+    font-size: .9rem;
+    border-radius: .55rem;
+}
+.public-link-copy-btn{
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+.btn-public-action{
+    min-width: 9.5rem;
+}
+.btn-make-private{
+    background: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+}
+.btn-make-private:hover,
+.btn-make-private:focus{
+    background: #bb2d3b;
+    border-color: #b02a37;
+    color: #fff;
+}
+.btn-make-private:disabled{
+    opacity: .85;
+}
 
 /* Message modal: advanced-mode toggle (header, near close) */
 .modal-header__actions{
@@ -534,35 +604,12 @@ a:hover { color: #93c5fd; }
 <body>
 
 <div class="app-shell">
-    <nav class="navbar bg-white shadow-sm app-header">
-        <div class="container d-flex justify-content-between align-items-center">
-            <span class="navbar-brand mb-0 h1"><?php echo $username; ?></span>
-            <div class="d-flex align-items-center gap-2">
-                <button
-                        type="button"
-                        class="btn btn-sm icon-btn icon-btn--header"
-                        onclick="refreshMessagesToFirstPage()"
-                        aria-label="Refresh messages"
-                        title="Refresh"
-                >
-                    <img src="assets/img/icons/refresh.svg" alt="" aria-hidden="true">
-                </button>
-                <button
-                    type="button"
-                    class="btn btn-sm icon-btn icon-btn--header"
-                    data-bs-toggle="modal"
-                    data-bs-target="#settingsModal"
-                    aria-label="Settings"
-                    title="Settings"
-                >
-                    <img src="assets/img/icons/setting.svg" alt="" aria-hidden="true">
-                </button>
-                <a class="btn btn-sm icon-btn icon-btn--header" href="logout.php" aria-label="Logout" title="Logout">
-                    <img src="assets/img/icons/logout.svg" alt="" aria-hidden="true">
-                </a>
-            </div>
-        </div>
-    </nav>
+    <?php
+    $topbarBrandText = $username;
+    $topbarLoggedIn = true;
+    $topbarOnTextPage = false;
+    require __DIR__ . '/partials/topbar.php';
+    ?>
 
     <main class="app-content" aria-label="Messages">
         <div class="container">
@@ -673,6 +720,18 @@ a:hover { color: #93c5fd; }
 </div>
 </div>
 
+<div class="modal fade" id="publicMessageModal" tabindex="-1" aria-labelledby="publicMessageModalTitle" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered">
+<div class="modal-content">
+<div class="modal-header">
+    <h5 class="modal-title" id="publicMessageModalTitle">Sharing</h5>
+    <button id="publicMessageCloseX" type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body" id="publicMessageModalBody"></div>
+</div>
+</div>
+</div>
+
 <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalTitle" aria-hidden="true">
 <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
 <div class="modal-content">
@@ -759,6 +818,8 @@ ThemesManager::importBootstrapJS();
 let currentPage = 1;
 const pageLimit = 10;
 const CURRENT_USER_ID = <?php echo (int)$userId; ?>;
+const APP_BASE_PATH = <?php echo json_encode(MessagePublic::appBasePath(), JSON_UNESCAPED_SLASHES); ?>;
+const APP_ORIGIN = <?php echo json_encode(MessagePublic::requestOrigin(), JSON_UNESCAPED_SLASHES); ?>;
 
 const messagesLoadingState = { count: 0 };
 function setMessagesLoading(isLoading) {
@@ -904,19 +965,24 @@ async function loadMessages(page = 1) {
             const dt = formatTehranDateTime(msg?.created_at);
             const dtSafe = escapeHtml(dt);
             const msgPk = Number(msg?.pk || 0);
+            const isPublic = Number(msg?.public || 0) === 1;
+            const publicActiveClass = isPublic ? " icon-btn--public-active" : "";
             return `
-            <div class="message-box" data-message-pk="${msgPk}">
+            <div class="message-box" data-message-pk="${msgPk}" data-is-public="${isPublic ? "1" : "0"}">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <small>
                         ${authorSafe}
                         ${dtSafe ? `<span class="ms-2" style="color: rgba(226, 232, 240, 0.55);">(${dtSafe})</span>` : ``}
                     </small>
                     <div class="d-inline-flex message-actions">
-                        <button type="button" class="btn btn-sm delete-btn icon-btn icon-btn--msg icon-btn--danger" aria-label="Delete" title="Delete" data-message-pk="${msgPk}">
-                            <img src="assets/img/icons/delete.svg" alt="" aria-hidden="true">
-                        </button>
                         <button type="button" class="btn btn-sm retext-btn icon-btn icon-btn--msg" aria-label="Retext" title="Retext">
                             <img src="assets/img/icons/resend.svg" alt="" aria-hidden="true">
+                        </button>
+                        <button type="button" class="btn btn-sm public-btn icon-btn icon-btn--msg${publicActiveClass}" aria-label="Public" title="Public" data-message-pk="${msgPk}" data-is-public="${isPublic ? "1" : "0"}">
+                            <img src="assets/img/icons/public.svg" alt="" aria-hidden="true">
+                        </button>
+                        <button type="button" class="btn btn-sm delete-btn icon-btn icon-btn--msg icon-btn--danger" aria-label="Delete" title="Delete" data-message-pk="${msgPk}">
+                            <img src="assets/img/icons/delete.svg" alt="" aria-hidden="true">
                         </button>
                         <button type="button" class="btn btn-sm copy-btn icon-btn icon-btn--msg" aria-label="Copy" title="Copy">
                             <img src="assets/img/icons/clipboard-copy.svg" alt="" aria-hidden="true">
@@ -1279,19 +1345,155 @@ async function confirmDeleteMessage() {
     }
 }
 
+function messagePublicSlug(pk) {
+    return Number(pk).toString(36);
+}
+
+function messagePublicUrl(pk) {
+    const slug = messagePublicSlug(pk);
+    const base = APP_BASE_PATH || "";
+    const origin = APP_ORIGIN || window.location.origin;
+    return `${origin}${base}/${slug}`;
+}
+
+function getPublicModalInstance() {
+    const el = document.getElementById("publicMessageModal");
+    if (!el) return null;
+    return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+}
+
+const publicState = {
+    messagePk: null,
+    isPublic: false,
+    publicUrl: "",
+    isSubmitting: false,
+};
+
+function syncPublicButtonInList(messagePk, isPublic) {
+    const box = document.querySelector(`.message-box[data-message-pk="${messagePk}"]`);
+    if (!box) return;
+    box.setAttribute("data-is-public", isPublic ? "1" : "0");
+    const btn = box.querySelector("button.public-btn");
+    if (!btn) return;
+    btn.setAttribute("data-is-public", isPublic ? "1" : "0");
+    btn.classList.toggle("icon-btn--public-active", !!isPublic);
+}
+
+function renderPublicModalContent() {
+    const body = document.getElementById("publicMessageModalBody");
+    if (!body) return;
+
+    const escapeHtml = (value) => String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+    const isPublic = !!publicState.isPublic;
+    const statusClass = isPublic ? "public-modal-status--public" : "public-modal-status--private";
+    const statusLabel = isPublic ? "Public" : "Private";
+    const actionLabel = isPublic ? "Make Private" : "Make Public";
+    const actionClass = isPublic ? "btn btn-public-action btn-make-private" : "btn btn-primary btn-public-action";
+    const loadingHtml = publicState.isSubmitting
+        ? `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>`
+        : "";
+
+    const linkBlock = isPublic ? `
+        <div class="mb-3">
+            <label class="form-label mb-1" for="publicMessageLinkInput">View link</label>
+            <div class="public-link-field">
+                <input id="publicMessageLinkInput" type="text" class="form-control" readonly value="${escapeHtml(publicState.publicUrl || "")}">
+                <button type="button" id="publicMessageCopyLinkBtn" class="btn btn-outline-secondary public-link-copy-btn">Copy</button>
+            </div>
+        </div>
+    ` : "";
+
+    body.innerHTML = `
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+            <span class="public-modal-status ${statusClass}">${statusLabel}</span>
+        </div>
+        ${linkBlock}
+        <div class="d-grid">
+            <button type="button" id="publicMessageToggleBtn" class="${actionClass}" ${publicState.isSubmitting ? "disabled" : ""}>
+                ${loadingHtml}${actionLabel}
+            </button>
+        </div>
+    `;
+
+    document.getElementById("publicMessageToggleBtn")?.addEventListener("click", toggleMessagePublic);
+    document.getElementById("publicMessageCopyLinkBtn")?.addEventListener("click", async () => {
+        const input = document.getElementById("publicMessageLinkInput");
+        const link = input?.value || publicState.publicUrl || "";
+        const btn = document.getElementById("publicMessageCopyLinkBtn");
+        if (!link || !btn) return;
+        await copyText(btn, link);
+    });
+}
+
+function openPublicModal(messagePk, isPublic) {
+    const pk = Number(messagePk || 0);
+    if (!pk || pk <= 0) return;
+    publicState.messagePk = pk;
+    publicState.isPublic = !!isPublic;
+    publicState.publicUrl = messagePublicUrl(pk);
+    publicState.isSubmitting = false;
+    renderPublicModalContent();
+    getPublicModalInstance()?.show();
+}
+
+async function toggleMessagePublic() {
+    if (publicState.isSubmitting) return;
+    const pk = Number(publicState.messagePk || 0);
+    if (!pk || pk <= 0) return;
+
+    const nextPublic = !publicState.isPublic;
+    publicState.isSubmitting = true;
+    renderPublicModalContent();
+
+    try {
+        const res = await fetch("api/set_message_public.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message_pk: pk, public: nextPublic ? 1 : 0 }),
+        });
+        let data = null;
+        try { data = await res.clone().json(); } catch (_) {}
+        if (!res.ok) throw new Error(data?.error || "Update failed");
+        if (data?.error) throw new Error(data.error);
+
+        publicState.isPublic = Number(data?.public || 0) === 1;
+        publicState.publicUrl = data?.url || messagePublicUrl(pk);
+        syncPublicButtonInList(pk, publicState.isPublic);
+    } catch (_) {
+        // Keep modal open for retry.
+    } finally {
+        publicState.isSubmitting = false;
+        renderPublicModalContent();
+    }
+}
+
 async function copyText(btn, text){
     const originalDisabled = btn?.disabled ?? false;
     const originalClassName = btn?.className ?? "";
+    const originalInnerHTML = btn?.innerHTML ?? "";
     const originalAriaLabel = btn?.getAttribute?.("aria-label") ?? "Copy";
     const originalTitle = btn?.getAttribute?.("title") ?? "Copy";
-    const iconEl = btn?.querySelector?.("img") || null;
-    const originalIconSrc = iconEl?.getAttribute?.("src") || "";
 
     const setState = (label, disabled) => {
         if (!btn) return;
         btn.setAttribute("aria-label", label);
         btn.setAttribute("title", label);
         btn.disabled = disabled;
+    };
+
+    const restoreButton = () => {
+        if (!btn) return;
+        btn.className = originalClassName;
+        btn.innerHTML = originalInnerHTML;
+        btn.setAttribute("aria-label", originalAriaLabel);
+        btn.setAttribute("title", originalTitle);
+        btn.disabled = originalDisabled;
     };
 
     try {
@@ -1311,29 +1513,16 @@ async function copyText(btn, text){
             if (!ok) throw new Error("Copy failed");
         }
 
-        setState("Copied!", true);
-        if (btn) btn.classList.add("copy-btn--copied");
-        if (iconEl) iconEl.setAttribute("src", "assets/img/icons/check.svg");
-        setTimeout(() => {
-            if (btn) btn.className = originalClassName;
-            if (iconEl && originalIconSrc) iconEl.setAttribute("src", originalIconSrc);
-            if (btn) {
-                btn.setAttribute("aria-label", originalAriaLabel);
-                btn.setAttribute("title", originalTitle);
-                btn.disabled = originalDisabled;
-            }
-        }, 3000);
+        setState("Copied", true);
+        if (btn) {
+            btn.classList.add("copy-btn--copied");
+            btn.textContent = "Copied";
+        }
+        setTimeout(restoreButton, 3000);
     } catch (e) {
         setState("Failed", true);
-        setTimeout(() => {
-            if (btn) btn.className = originalClassName;
-            if (iconEl && originalIconSrc) iconEl.setAttribute("src", originalIconSrc);
-            if (btn) {
-                btn.setAttribute("aria-label", originalAriaLabel);
-                btn.setAttribute("title", originalTitle);
-                btn.disabled = originalDisabled;
-            }
-        }, 1500);
+        if (btn) btn.textContent = "Failed";
+        setTimeout(restoreButton, 1500);
     }
 }
 
@@ -1367,6 +1556,22 @@ loadMessages();
         if (!btn) return;
         const pk = Number(btn.getAttribute("data-message-pk") || 0);
         openDeleteModal(pk);
+    });
+
+    // Public button handler (event delegation).
+    document.getElementById("messages")?.addEventListener("click", (e) => {
+        const btn = e.target?.closest?.("button.public-btn");
+        if (!btn) return;
+        const pk = Number(btn.getAttribute("data-message-pk") || 0);
+        const isPublic = String(btn.getAttribute("data-is-public") || "0") === "1";
+        openPublicModal(pk, isPublic);
+    });
+
+    document.getElementById("publicMessageModal")?.addEventListener("hidden.bs.modal", () => {
+        publicState.messagePk = null;
+        publicState.isPublic = false;
+        publicState.publicUrl = "";
+        publicState.isSubmitting = false;
     });
 
     // Delete modal handlers.

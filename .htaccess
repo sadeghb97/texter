@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Do not rewrite known app routes and static assets
+RewriteRule ^(api|assets)(/|$) - [L,NC]
+RewriteRule ^(login|register|logout|index|text)(\.php)?$ - [L,NC]
+
+# Pretty public text URLs: /<base36-id>
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([0-9a-z]+)$ text.php?text=$1 [L,QSA,NC]

@@ -28,7 +28,7 @@ $total = (int)($totalRow['cnt'] ?? 0);
 $total_pages = (int)ceil($total / $limit);
 
 $res = $conn->query(
-    "SELECT m.pk, m.text, m.author_pk, m.created_at, u.username AS author_username
+    "SELECT m.pk, m.text, m.author_pk, m.created_at, m.public, u.username AS author_username
      FROM messages m
      INNER JOIN users u ON u.id = m.author_pk
      WHERE m.profile_pk = $profilePk
@@ -42,6 +42,7 @@ while($row=$res->fetch_assoc()){
         "text" => $row['text'],
         "author" => $row['author_username'] ?? null,
         "pk" => (int)$row['pk'],
+        "public" => (int)($row['public'] ?? 0),
         "created_at" => isset($row['created_at']) ? (int)$row['created_at'] : null
     ];
 }
