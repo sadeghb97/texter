@@ -529,6 +529,7 @@ a:hover { color: #93c5fd; }
     .messages-loading{ transition: none; }
 }
 </style>
+<link rel="stylesheet" href="assets/css/toast.css">
 </head>
 <body>
 
@@ -753,6 +754,7 @@ a:hover { color: #93c5fd; }
 <?php
 ThemesManager::importBootstrapJS();
 ?>
+<script src="assets/js/toast.js"></script>
 <script>
 let currentPage = 1;
 const pageLimit = 10;
@@ -990,6 +992,7 @@ function sendMessage() {
 
     let profilePk = CURRENT_USER_ID;
     let includesSelf = true;
+    let advancedRecipientCount = 0;
 
     if (advanced) {
         const recipients = Array.from(selectedRecipients.keys());
@@ -1001,6 +1004,7 @@ function sendMessage() {
             return;
         }
         profilePk = uniqueRecipients;
+        advancedRecipientCount = uniqueRecipients.length;
     } else if (!text) {
         updateSendButtonState();
         return;
@@ -1028,7 +1032,19 @@ function sendMessage() {
         setMessageText("", { focus: false });
         if (!advanced || includesSelf) loadMessages(currentPage);
         setMessageAdvancedMode(false);
+        const modalEl = document.getElementById("messageModal");
         const modal = getMessageModalInstance();
+        if (advanced && advancedRecipientCount > 0 && modalEl) {
+            const onHidden = () => {
+                modalEl.removeEventListener("hidden.bs.modal", onHidden);
+                if (typeof AppToast !== "undefined") {
+                    const n = advancedRecipientCount;
+                    const label = n === 1 ? "person" : "people";
+                    AppToast.success(`Message sent successfully to ${n} ${label}.`);
+                }
+            };
+            modalEl.addEventListener("hidden.bs.modal", onHidden);
+        }
         modal?.hide();
     })
     .catch(() => {
