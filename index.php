@@ -295,13 +295,6 @@ a:hover { color: #93c5fd; }
     --icon-btn-border: rgba(59, 130, 246, 0.55);
     --icon-btn-border-hover: rgba(59, 130, 246, 0.8);
 }
-.icon-btn--footer.icon-btn--footer-message{
-    --icon-btn-bg: rgba(124, 58, 237, 0.22);
-    --icon-btn-bg-hover: rgba(124, 58, 237, 0.32);
-    --icon-btn-border: rgba(124, 58, 237, 0.55);
-    --icon-btn-border-hover: rgba(124, 58, 237, 0.82);
-}
-
 /* Copy "copied" state: different background + icon color */
 .copy-btn--copied{
     background: rgba(25, 135, 84, 0.22) !important;
@@ -317,16 +310,37 @@ a:hover { color: #93c5fd; }
     filter: brightness(0) saturate(100%) invert(64%) sepia(54%) saturate(463%) hue-rotate(89deg) brightness(92%) contrast(92%);
 }
 
-/* Purple action button for "Message" */
-.btn-purple{
-    background: #7c3aed;
-    border-color: #7c3aed;
-    color: #fff;
+/* Message modal: advanced-mode toggle (header, near close) */
+.modal-header__actions{
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin-left: auto;
 }
-.btn-purple:hover{
-    background: #6d28d9;
-    border-color: #6d28d9;
-    color: #fff;
+.message-advanced-toggle{
+    --icon-btn-bg: transparent;
+    --icon-btn-bg-hover: rgba(59, 130, 246, 0.14);
+    --icon-btn-border: transparent;
+    --icon-btn-border-hover: rgba(96, 165, 250, 0.45);
+    padding: .35rem .45rem;
+    border-radius: .5rem;
+    min-width: 0;
+    min-height: 0;
+}
+.message-advanced-toggle img,
+.message-advanced-toggle svg{
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+.message-advanced-toggle.is-active{
+    --icon-btn-bg: rgba(124, 58, 237, 0.22);
+    --icon-btn-bg-hover: rgba(124, 58, 237, 0.32);
+    --icon-btn-border: rgba(124, 58, 237, 0.45);
+    --icon-btn-border-hover: rgba(124, 58, 237, 0.65);
+}
+.message-advanced-toggle.is-active img{
+    filter: brightness(0) saturate(100%) invert(78%) sepia(35%) saturate(1200%) hue-rotate(228deg) brightness(102%) contrast(98%);
 }
 
 /* Recipient autocomplete */
@@ -566,18 +580,6 @@ a:hover { color: #93c5fd; }
 
                 <div class="d-flex align-items-center gap-3 ms-auto flex-wrap">
                     <button
-                            type="button"
-                            class="btn icon-btn icon-btn--footer icon-btn--footer-message"
-                            data-bs-toggle="modal"
-                            data-bs-target="#sendMessageModal"
-                            aria-label="Message"
-                            title="Message"
-                    >
-                        <img src="assets/img/icons/message.svg" alt="" aria-hidden="true">
-                        <span class="visually-hidden">Message</span>
-                    </button>
-
-                    <button
                         type="button"
                         class="btn icon-btn icon-btn--footer icon-btn--footer-create"
                         data-bs-toggle="modal"
@@ -607,30 +609,22 @@ a:hover { color: #93c5fd; }
 <div class="modal-content">
 <div class="modal-header">
 <h5 class="modal-title">New Message</h5>
-<button class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal-header__actions">
+    <button
+        type="button"
+        id="messageAdvancedToggle"
+        class="btn icon-btn message-advanced-toggle"
+        aria-label="Advanced mode"
+        aria-pressed="false"
+        title="Recipients"
+    >
+        <img src="assets/img/icons/message.svg" alt="" aria-hidden="true">
+    </button>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
 </div>
 <div class="modal-body">
-<textarea id="messageInput" class="form-control" rows="4" placeholder="Type your message..."></textarea>
-</div>
-<div class="modal-footer">
-<button id="pasteFromClipboardBtn" type="button" class="btn btn-outline-secondary" onclick="pasteFromClipboard()">
-    Paste from clipboard
-</button>
-<button id="sendMessageBtn" type="button" class="btn btn-primary" onclick="sendMessage()" disabled>Send</button>
-</div>
-</div>
-</div>
-</div>
-
-<div class="modal fade" id="sendMessageModal">
-<div class="modal-dialog">
-<div class="modal-content">
-<div class="modal-header">
-<h5 class="modal-title">Send Message</h5>
-<button class="btn-close" data-bs-dismiss="modal"></button>
-</div>
-<div class="modal-body">
-    <div class="mb-3 recipient-autocomplete" id="recipientAutocomplete">
+    <div id="messageAdvancedSection" class="d-none mb-3 recipient-autocomplete">
         <div class="recipient-header-row mb-1">
             <label class="form-label mb-0" for="recipientInput">Recipients</label>
             <div class="form-check form-switch send-self-switch mb-0">
@@ -647,17 +641,18 @@ a:hover { color: #93c5fd; }
             <div id="recipientTags" class="recipient-tags"></div>
         </div>
     </div>
-    <textarea id="sendMessageInput" class="form-control" rows="4" placeholder="Type your message..."></textarea>
+    <textarea id="messageInput" class="form-control" rows="4" placeholder="Type your message..."></textarea>
 </div>
 <div class="modal-footer">
-<button id="pasteFromClipboardSendBtn" type="button" class="btn btn-outline-secondary" onclick="pasteFromClipboardSend()">
+<button id="pasteFromClipboardBtn" type="button" class="btn btn-outline-secondary" onclick="pasteFromClipboard()">
     Paste from clipboard
 </button>
-<button id="sendToUsersBtn" type="button" class="btn btn-purple" onclick="sendToUsers()" disabled>Send</button>
+<button id="sendMessageBtn" type="button" class="btn btn-primary" onclick="sendMessage()" disabled>Send</button>
 </div>
 </div>
 </div>
 </div>
+
 
 <div class="modal fade" id="deleteMessageModal" tabindex="-1" aria-labelledby="deleteMessageModalTitle" aria-hidden="true">
 <div class="modal-dialog modal-dialog-centered">
@@ -816,10 +811,49 @@ function setMessageText(nextText, { focus = true } = {}) {
     updateSendButtonState();
 }
 
+function isMessageAdvancedMode() {
+    const section = document.getElementById("messageAdvancedSection");
+    return !!section && !section.classList.contains("d-none");
+}
+
+function setMessageAdvancedMode(enabled, { focusRecipient = false } = {}) {
+    const section = document.getElementById("messageAdvancedSection");
+    const toggle = document.getElementById("messageAdvancedToggle");
+    if (!section || !toggle) return;
+
+    const on = !!enabled;
+    section.classList.toggle("d-none", !on);
+    toggle.classList.toggle("is-active", on);
+    toggle.setAttribute("aria-pressed", on ? "true" : "false");
+    toggle.setAttribute("aria-label", on ? "Simple mode" : "Advanced mode");
+    toggle.setAttribute("title", on ? "Simple mode" : "Recipients");
+
+    if (!on) {
+        selectedRecipients.clear();
+        updateRecipientTags();
+        renderSuggestions([]);
+        const ri = document.getElementById("recipientInput");
+        if (ri) ri.value = "";
+        const selfToggle = document.getElementById("sendToSelfToggle");
+        if (selfToggle) selfToggle.checked = false;
+    } else if (focusRecipient) {
+        document.getElementById("recipientInput")?.focus();
+    }
+
+    updateSendButtonState();
+}
+
 function updateSendButtonState() {
     const btn = document.getElementById("sendMessageBtn");
     if (!btn) return;
-    btn.disabled = getMessageText().trim().length === 0;
+    const hasText = getMessageText().trim().length > 0;
+    if (!isMessageAdvancedMode()) {
+        btn.disabled = !hasText;
+        return;
+    }
+    const hasRecipients = selectedRecipients.size > 0;
+    const sendToSelf = !!document.getElementById("sendToSelfToggle")?.checked;
+    btn.disabled = !(hasText && (hasRecipients || sendToSelf));
 }
 
 async function loadMessages(page = 1) {
@@ -951,7 +985,23 @@ function renderPagination(total) {
 
 function sendMessage() {
     const text = getMessageText().trim();
-    if (!text) {
+    const advanced = isMessageAdvancedMode();
+    const sendToSelf = !!document.getElementById("sendToSelfToggle")?.checked;
+
+    let profilePk = CURRENT_USER_ID;
+    let includesSelf = true;
+
+    if (advanced) {
+        const recipients = Array.from(selectedRecipients.keys());
+        if (sendToSelf) recipients.push(CURRENT_USER_ID);
+        const uniqueRecipients = Array.from(new Set(recipients)).filter((id) => Number(id) > 0);
+        includesSelf = uniqueRecipients.includes(CURRENT_USER_ID);
+        if (!text || uniqueRecipients.length === 0) {
+            updateSendButtonState();
+            return;
+        }
+        profilePk = uniqueRecipients;
+    } else if (!text) {
         updateSendButtonState();
         return;
     }
@@ -966,24 +1016,22 @@ function sendMessage() {
     fetch('api/add_message.php', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ text, profile_pk: <?php echo (int)$userId; ?> })
+        body: JSON.stringify({ text, profile_pk: profilePk })
     })
     .then(async (res) => {
-        // If API returns JSON, surface error, otherwise treat as ok on 2xx.
-        try {
-            const data = await res.clone().json();
-            if (data?.error) throw new Error(data.error);
-        } catch (_) {}
-        if (!res.ok) throw new Error("Send failed");
+        let data = null;
+        try { data = await res.clone().json(); } catch (_) {}
+        if (!res.ok) throw new Error(data?.error || "Send failed");
+        if (data?.error) throw new Error(data.error);
     })
     .then(() => {
         setMessageText("", { focus: false });
-        loadMessages(currentPage);
+        if (!advanced || includesSelf) loadMessages(currentPage);
+        setMessageAdvancedMode(false);
         const modal = getMessageModalInstance();
         modal?.hide();
     })
     .catch(() => {
-        // keep text so user can retry
         if (sendBtn) sendBtn.disabled = false;
     })
     .finally(() => {
@@ -1030,26 +1078,6 @@ async function pasteFromClipboard() {
     }
 }
 
-// --- Send-to-users modal helpers ---
-function getSendModalInstance() {
-    const el = document.getElementById("sendMessageModal");
-    if (!el) return null;
-    return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
-}
-
-function getSendMessageText() {
-    const el = document.getElementById("sendMessageInput");
-    return (el?.value ?? "");
-}
-
-function setSendMessageText(nextText, { focus = true } = {}) {
-    const el = document.getElementById("sendMessageInput");
-    if (!el) return;
-    el.value = nextText;
-    if (focus) el.focus();
-    updateSendToUsersButtonState();
-}
-
 const selectedRecipients = new Map(); // id -> {id, username}
 
 function updateRecipientTags() {
@@ -1065,21 +1093,12 @@ function updateRecipientTags() {
             </span>
         `;
     }).join("");
-    updateSendToUsersButtonState();
+    updateSendButtonState();
 }
 
 function removeRecipient(id) {
     selectedRecipients.delete(Number(id));
     updateRecipientTags();
-}
-
-function updateSendToUsersButtonState() {
-    const btn = document.getElementById("sendToUsersBtn");
-    if (!btn) return;
-    const hasText = getSendMessageText().trim().length > 0;
-    const hasRecipients = selectedRecipients.size > 0;
-    const sendToSelf = !!document.getElementById("sendToSelfToggle")?.checked;
-    btn.disabled = !(hasText && (hasRecipients || sendToSelf));
 }
 
 let usersFetchTimer = null;
@@ -1176,91 +1195,6 @@ function selectRecipient(id, username) {
     renderSuggestions([]);
     updateRecipientTags();
     document.getElementById("recipientInput")?.focus();
-}
-
-async function pasteFromClipboardSend() {
-    const btn = document.getElementById("pasteFromClipboardSendBtn");
-    const originalLabel = btn?.textContent ?? "Paste from clipboard";
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = "Pasting...";
-    }
-    try {
-        let clip = "";
-        if (navigator.clipboard?.readText) {
-            clip = await navigator.clipboard.readText();
-        } else {
-            throw new Error("Clipboard read not supported");
-        }
-        const current = getSendMessageText();
-        const combined = (current && clip) ? (current + "\n" + clip) : (current + clip);
-        setSendMessageText(combined);
-    } catch (e) {
-        try {
-            const manual = window.prompt("Paste your clipboard text here:");
-            if (manual != null) {
-                const current = getSendMessageText();
-                const combined = (current && manual) ? (current + "\n" + manual) : (current + manual);
-                setSendMessageText(combined);
-            }
-        } catch (_) {}
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = originalLabel;
-        }
-        updateSendToUsersButtonState();
-    }
-}
-
-function sendToUsers() {
-    const text = getSendMessageText().trim();
-    const sendToSelf = !!document.getElementById("sendToSelfToggle")?.checked;
-    const recipients = Array.from(selectedRecipients.keys());
-    if (sendToSelf) recipients.push(CURRENT_USER_ID);
-    const uniqueRecipients = Array.from(new Set(recipients)).filter((id) => Number(id) > 0);
-    const includesSelf = uniqueRecipients.includes(CURRENT_USER_ID);
-
-    if (!text || uniqueRecipients.length === 0) {
-        updateSendToUsersButtonState();
-        return;
-    }
-
-    const sendBtn = document.getElementById("sendToUsersBtn");
-    const originalSendLabel = sendBtn?.textContent ?? "Send";
-    if (sendBtn) {
-        sendBtn.disabled = true;
-        sendBtn.textContent = "Sending...";
-    }
-
-    fetch('api/add_message.php', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ text, profile_pk: uniqueRecipients })
-    })
-    .then(async (res) => {
-        let data = null;
-        try { data = await res.clone().json(); } catch (_) {}
-        if (!res.ok) throw new Error(data?.error || "Send failed");
-        if (data?.error) throw new Error(data.error);
-    })
-    .then(() => {
-        setSendMessageText("", { focus: false });
-        selectedRecipients.clear();
-        updateRecipientTags();
-        const selfToggle = document.getElementById("sendToSelfToggle");
-        if (selfToggle) selfToggle.checked = false;
-        if (includesSelf) loadMessages(currentPage);
-        const modal = getSendModalInstance();
-        modal?.hide();
-    })
-    .catch(() => {
-        if (sendBtn) sendBtn.disabled = false;
-    })
-    .finally(() => {
-        if (sendBtn) sendBtn.textContent = originalSendLabel;
-        updateSendToUsersButtonState();
-    });
 }
 
 // --- Delete message modal helpers ---
@@ -1406,9 +1340,9 @@ loadMessages();
         if (!btn) return;
         const box = btn.closest(".message-box");
         const text = box?.querySelector?.(".message-text")?.innerText ?? "";
+        setMessageAdvancedMode(false);
         setMessageText(text);
-        const modal = getMessageModalInstance();
-        modal?.show();
+        getMessageModalInstance()?.show();
     });
 
     // Delete button handler (event delegation).
@@ -1428,6 +1362,10 @@ loadMessages();
 
     const input = document.getElementById("messageInput");
     const modalEl = document.getElementById("messageModal");
+    const advancedToggle = document.getElementById("messageAdvancedToggle");
+    const recipientInput = document.getElementById("recipientInput");
+    const suggestionBox = document.getElementById("recipientSuggestions");
+    const sendToSelfToggle = document.getElementById("sendToSelfToggle");
 
     if (input) {
         input.addEventListener("input", updateSendButtonState);
@@ -1436,26 +1374,9 @@ loadMessages();
         });
     }
 
-    if (modalEl) {
-        modalEl.addEventListener("shown.bs.modal", () => {
-            updateSendButtonState();
-            document.getElementById("messageInput")?.focus();
-        });
-        modalEl.addEventListener("hidden.bs.modal", () => {
-            setMessageText("", { focus: false });
-        });
-    }
-
-    updateSendButtonState();
-})();
-
-// Wire up send-to-users modal behavior
-(() => {
-    const modalEl = document.getElementById("sendMessageModal");
-    const recipientInput = document.getElementById("recipientInput");
-    const messageInput = document.getElementById("sendMessageInput");
-    const suggestionBox = document.getElementById("recipientSuggestions");
-    const sendToSelfToggle = document.getElementById("sendToSelfToggle");
+    advancedToggle?.addEventListener("click", () => {
+        setMessageAdvancedMode(!isMessageAdvancedMode(), { focusRecipient: true });
+    });
 
     if (recipientInput) {
         recipientInput.addEventListener("input", () => {
@@ -1526,46 +1447,31 @@ loadMessages();
         });
     }
 
-    if (messageInput) {
-        messageInput.addEventListener("input", updateSendToUsersButtonState);
-        messageInput.addEventListener("keydown", (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") sendToUsers();
-        });
-    }
-
     if (sendToSelfToggle) {
-        sendToSelfToggle.addEventListener("change", updateSendToUsersButtonState);
+        sendToSelfToggle.addEventListener("change", updateSendButtonState);
     }
 
-    // Close suggestions on outside click within modal
     document.addEventListener("click", (e) => {
         const box = document.getElementById("recipientSuggestions");
-        const wrap = document.getElementById("recipientAutocomplete");
-        if (!box || !wrap) return;
+        const wrap = document.getElementById("messageAdvancedSection");
+        if (!box || !wrap || wrap.classList.contains("d-none")) return;
         if (wrap.contains(e.target)) return;
         renderSuggestions([]);
     });
 
     if (modalEl) {
         modalEl.addEventListener("shown.bs.modal", () => {
-            updateRecipientTags();
-            updateSendToUsersButtonState();
-            document.getElementById("recipientInput")?.focus();
+            setMessageAdvancedMode(false);
+            updateSendButtonState();
+            document.getElementById("messageInput")?.focus();
         });
         modalEl.addEventListener("hidden.bs.modal", () => {
-            // reset UI
-            selectedRecipients.clear();
-            updateRecipientTags();
-            renderSuggestions([]);
-            const ri = document.getElementById("recipientInput");
-            if (ri) ri.value = "";
-            const selfToggle = document.getElementById("sendToSelfToggle");
-            if (selfToggle) selfToggle.checked = false;
-            setSendMessageText("", { focus: false });
+            setMessageAdvancedMode(false);
+            setMessageText("", { focus: false });
         });
     }
 
-    updateSendToUsersButtonState();
+    updateSendButtonState();
 })();
 
 // --- Settings: Change Password validation (UI only) ---
