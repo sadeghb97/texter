@@ -513,10 +513,44 @@ a:hover { color: #93c5fd; }
 .recipient-tag button:hover{ opacity: 1; }
 
 .message-actions{
+    position: relative;
+    flex-shrink: 0;
     gap: .65rem !important;
 }
 .message-actions .btn:not(.icon-btn){
     min-width: 78px;
+}
+.message-actions-more{
+    display: none;
+}
+.message-actions-menu{
+    display: inline-flex;
+    gap: .65rem !important;
+}
+@media (max-width: 575.98px){
+    .message-actions-more{
+        display: inline-flex;
+    }
+    .message-actions-menu{
+        display: none !important;
+        position: absolute;
+        top: 50%;
+        right: calc(100% + 6px);
+        transform: translateY(-50%);
+        z-index: 20;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: .35rem !important;
+        padding: .35rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: .55rem;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+    .message-actions-menu.is-open{
+        display: inline-flex !important;
+    }
 }
 
 /* Settings modal: compact & mobile-friendly */
@@ -975,6 +1009,10 @@ async function loadMessages(page = 1) {
                         ${dtSafe ? `<span class="ms-2" style="color: rgba(226, 232, 240, 0.55);">(${dtSafe})</span>` : ``}
                     </small>
                     <div class="d-inline-flex message-actions">
+                        <button type="button" class="btn btn-sm message-actions-more icon-btn icon-btn--msg" aria-label="More actions" aria-expanded="false" aria-haspopup="true" title="More">
+                            <img src="assets/img/icons/more.svg" alt="" aria-hidden="true">
+                        </button>
+                        <div class="message-actions-menu" role="menu">
                         <button type="button" class="btn btn-sm retext-btn icon-btn icon-btn--msg" aria-label="Retext" title="Retext">
                             <img src="assets/img/icons/resend.svg" alt="" aria-hidden="true">
                         </button>
@@ -987,6 +1025,7 @@ async function loadMessages(page = 1) {
                         <button type="button" class="btn btn-sm copy-btn icon-btn icon-btn--msg" aria-label="Copy" title="Copy">
                             <img src="assets/img/icons/clipboard-copy.svg" alt="" aria-hidden="true">
                         </button>
+                        </div>
                     </div>
                 </div>
                 <div class="message-text" style="white-space: pre-wrap;">${textSafe}</div>
@@ -1473,6 +1512,13 @@ async function toggleMessagePublic() {
     }
 }
 
+function closeMessageActionMenus() {
+    document.querySelectorAll(".message-actions-menu.is-open").forEach((menu) => {
+        menu.classList.remove("is-open");
+        menu.closest(".message-actions")?.querySelector(".message-actions-more")?.setAttribute("aria-expanded", "false");
+    });
+}
+
 async function copyText(btn, text){
     const originalDisabled = btn?.disabled ?? false;
     const originalClassName = btn?.className ?? "";
@@ -1494,6 +1540,7 @@ async function copyText(btn, text){
         btn.setAttribute("aria-label", originalAriaLabel);
         btn.setAttribute("title", originalTitle);
         btn.disabled = originalDisabled;
+        if (btn.closest?.(".message-actions-menu")) closeMessageActionMenus();
     };
 
     try {
@@ -1530,6 +1577,28 @@ loadMessages();
 
 // Wire up modal input behavior
 (() => {
+    document.addEventListener("click", (e) => {
+        if (!e.target?.closest?.(".message-actions")) closeMessageActionMenus();
+    }, true);
+
+    document.getElementById("messages")?.addEventListener("click", (e) => {
+        const moreBtn = e.target?.closest?.("button.message-actions-more");
+        if (moreBtn) {
+            e.stopPropagation();
+            const menu = moreBtn.closest(".message-actions")?.querySelector(".message-actions-menu");
+            if (!menu) return;
+            const willOpen = !menu.classList.contains("is-open");
+            closeMessageActionMenus();
+            if (willOpen) {
+                menu.classList.add("is-open");
+                moreBtn.setAttribute("aria-expanded", "true");
+            }
+            return;
+        }
+        const menuBtn = e.target?.closest?.(".message-actions-menu button");
+        if (menuBtn && !menuBtn.classList.contains("copy-btn")) closeMessageActionMenus();
+    });
+
     // Copy button handler (event delegation).
     document.getElementById("messages")?.addEventListener("click", (e) => {
         const btn = e.target?.closest?.("button.copy-btn");
