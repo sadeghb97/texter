@@ -43,6 +43,7 @@ while($row=$res->fetch_assoc()){
     $messages[]=[
         "text" => $row['text'],
         "author" => $row['author_username'] ?? null,
+        "author_pk" => (int)($row['author_pk'] ?? 0),
         "pk" => (int)$row['pk'],
         "public" => (int)($row['public'] ?? 0),
         "slug" => $slug,

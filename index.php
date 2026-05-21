@@ -847,6 +847,25 @@ a:hover { color: #93c5fd; }
 </div>
 
 
+<div class="modal fade" id="editMessageModal" tabindex="-1" aria-labelledby="editMessageModalTitle" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered">
+<div class="modal-content">
+<div class="modal-header">
+    <h5 class="modal-title" id="editMessageModalTitle">Edit message</h5>
+    <button id="editMessageCloseX" type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <textarea id="editMessageInput" class="form-control" rows="6" placeholder="Message text…"></textarea>
+    <div id="editMessageError" class="small mt-2" style="min-height: 1.25rem; color: rgba(248, 113, 113, 0.95);"></div>
+</div>
+<div class="modal-footer">
+    <button id="editMessageCancelBtn" type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button id="editMessageSaveBtn" type="button" class="btn btn-primary">Save</button>
+</div>
+</div>
+</div>
+</div>
+
 <div class="modal fade" id="deleteMessageModal" tabindex="-1" aria-labelledby="deleteMessageModalTitle" aria-hidden="true">
 <div class="modal-dialog modal-dialog-centered">
 <div class="modal-content">
@@ -1114,12 +1133,19 @@ async function loadMessages(page = 1) {
             const dt = formatTehranDateTime(msg?.created_at);
             const dtSafe = escapeHtml(dt);
             const msgPk = Number(msg?.pk || 0);
+            const authorPk = Number(msg?.author_pk || 0);
+            const isOwnMessage = authorPk === CURRENT_USER_ID;
             const isPublic = Number(msg?.public || 0) === 1;
             const publicActiveClass = isPublic ? " icon-btn--public-active" : "";
             const msgSlug = escapeHtml(String(msg?.slug || "").toLowerCase());
             const profileSlug = escapeHtml(String(msg?.profile_slug || "").toLowerCase());
             const hasPassword = msg?.has_password ? "1" : "0";
             const shareUrl = escapeHtml(String(msg?.url || ""));
+            const editBtnHtml = isOwnMessage
+                ? `<button type="button" class="btn btn-sm edit-btn icon-btn icon-btn--msg" aria-label="Edit" title="Edit" data-message-pk="${msgPk}">
+                            <img src="assets/img/icons/edit.svg" alt="" aria-hidden="true">
+                        </button>`
+                : "";
             return `
             <div class="message-box" data-message-pk="${msgPk}" data-is-public="${isPublic ? "1" : "0"}" data-slug="${msgSlug}" data-profile-slug="${profileSlug}" data-has-password="${hasPassword}" data-share-url="${shareUrl}">
                 <div class="d-flex justify-content-between align-items-start gap-2">
@@ -1132,15 +1158,16 @@ async function loadMessages(page = 1) {
                             <img src="assets/img/icons/more.svg" alt="" aria-hidden="true">
                         </button>
                         <div class="message-actions-menu" role="menu">
+                        <button type="button" class="btn btn-sm delete-btn icon-btn icon-btn--msg icon-btn--danger" aria-label="Delete" title="Delete" data-message-pk="${msgPk}">
+                            <img src="assets/img/icons/delete.svg" alt="" aria-hidden="true">
+                        </button>
                         <button type="button" class="btn btn-sm retext-btn icon-btn icon-btn--msg" aria-label="Retext" title="Retext">
                             <img src="assets/img/icons/resend.svg" alt="" aria-hidden="true">
                         </button>
                         <button type="button" class="btn btn-sm public-btn icon-btn icon-btn--msg${publicActiveClass}" aria-label="Public" title="Public" data-message-pk="${msgPk}" data-is-public="${isPublic ? "1" : "0"}">
                             <img src="assets/img/icons/public.svg" alt="" aria-hidden="true">
                         </button>
-                        <button type="button" class="btn btn-sm delete-btn icon-btn icon-btn--msg icon-btn--danger" aria-label="Delete" title="Delete" data-message-pk="${msgPk}">
-                            <img src="assets/img/icons/delete.svg" alt="" aria-hidden="true">
-                        </button>
+                        ${editBtnHtml}
                         <button type="button" class="btn btn-sm copy-btn icon-btn icon-btn--msg" aria-label="Copy" title="Copy">
                             <img src="assets/img/icons/clipboard-copy.svg" alt="" aria-hidden="true">
                         </button>
@@ -1438,6 +1465,106 @@ function selectRecipient(id, username) {
 }
 
 // --- Delete message modal helpers ---
+function getEditModalInstance() {
+    const el = document.getElementById("editMessageModal");
+    if (!el) return null;
+    return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+}
+
+const editState = {
+    messagePk: null,
+    isSubmitting: false,
+};
+
+function setEditFormError(msg) {
+    const el = document.getElementById("editMessageError");
+    if (el) el.textContent = msg || "";
+}
+
+function setEditUiSubmitting(isSubmitting) {
+    editState.isSubmitting = !!isSubmitting;
+    const saveBtn = document.getElementById("editMessageSaveBtn");
+    const cancelBtn = document.getElementById("editMessageCancelBtn");
+    const closeX = document.getElementById("editMessageCloseX");
+    const input = document.getElementById("editMessageInput");
+    if (!saveBtn || !cancelBtn) return;
+
+    if (isSubmitting) {
+        cancelBtn.disabled = true;
+        if (closeX) closeX.disabled = true;
+        if (input) input.disabled = true;
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving…`;
+    } else {
+        cancelBtn.disabled = false;
+        if (closeX) closeX.disabled = false;
+        if (input) input.disabled = false;
+        saveBtn.disabled = !(input?.value?.trim().length > 0);
+        saveBtn.textContent = "Save";
+    }
+}
+
+function updateEditSaveButtonState() {
+    if (editState.isSubmitting) return;
+    const saveBtn = document.getElementById("editMessageSaveBtn");
+    const input = document.getElementById("editMessageInput");
+    if (!saveBtn || !input) return;
+    saveBtn.disabled = input.value.trim().length === 0;
+}
+
+function openEditModal(messagePk, text) {
+    const pk = Number(messagePk || 0);
+    if (!pk || pk <= 0) return;
+    editState.messagePk = pk;
+    setEditFormError("");
+    setEditUiSubmitting(false);
+    const input = document.getElementById("editMessageInput");
+    if (input) {
+        input.value = String(text ?? "");
+        updateEditSaveButtonState();
+    }
+    getEditModalInstance()?.show();
+    input?.focus();
+}
+
+async function confirmEditMessage() {
+    if (editState.isSubmitting) return;
+    const pk = Number(editState.messagePk || 0);
+    if (!pk || pk <= 0) return;
+
+    const input = document.getElementById("editMessageInput");
+    const text = input?.value?.trim() ?? "";
+    if (!text) {
+        setEditFormError("Message text cannot be empty.");
+        updateEditSaveButtonState();
+        return;
+    }
+
+    setEditUiSubmitting(true);
+    setEditFormError("");
+    try {
+        const res = await fetch("api/edit_message.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message_pk: pk, text }),
+        });
+        let data = null;
+        try { data = await res.clone().json(); } catch (_) {}
+        if (!res.ok) throw new Error(data?.error || "Update failed");
+        if (data?.error) throw new Error(data.error);
+
+        const box = document.querySelector(`.message-box[data-message-pk="${pk}"]`);
+        const textEl = box?.querySelector(".message-text");
+        if (textEl) textEl.textContent = data?.text ?? text;
+
+        getEditModalInstance()?.hide();
+    } catch (err) {
+        setEditFormError(String(err?.message || "Could not save changes."));
+    } finally {
+        setEditUiSubmitting(false);
+    }
+}
+
 function getDeleteModalInstance() {
     const el = document.getElementById("deleteMessageModal");
     if (!el) return null;
@@ -1901,6 +2028,16 @@ loadMessages();
         getMessageModalInstance()?.show();
     });
 
+    // Edit button handler (event delegation).
+    document.getElementById("messages")?.addEventListener("click", (e) => {
+        const btn = e.target?.closest?.("button.edit-btn");
+        if (!btn) return;
+        const box = btn.closest(".message-box");
+        const pk = Number(btn.getAttribute("data-message-pk") || 0);
+        const text = box?.querySelector?.(".message-text")?.innerText ?? "";
+        openEditModal(pk, text);
+    });
+
     // Delete button handler (event delegation).
     document.getElementById("messages")?.addEventListener("click", (e) => {
         const btn = e.target?.closest?.("button.delete-btn");
@@ -1925,6 +2062,22 @@ loadMessages();
     });
 
     document.getElementById("publicMessageSaveBtn")?.addEventListener("click", saveMessageSharing);
+
+    document.getElementById("editMessageSaveBtn")?.addEventListener("click", confirmEditMessage);
+    document.getElementById("editMessageInput")?.addEventListener("input", () => {
+        setEditFormError("");
+        updateEditSaveButtonState();
+    });
+    document.getElementById("editMessageModal")?.addEventListener("shown.bs.modal", () => {
+        document.getElementById("editMessageInput")?.focus();
+    });
+    document.getElementById("editMessageModal")?.addEventListener("hidden.bs.modal", () => {
+        editState.messagePk = null;
+        setEditFormError("");
+        setEditUiSubmitting(false);
+        const input = document.getElementById("editMessageInput");
+        if (input) input.value = "";
+    });
 
     document.getElementById("publicMessageModal")?.addEventListener("hidden.bs.modal", () => {
         publicState.messagePk = null;
