@@ -445,6 +445,30 @@ a:hover { color: #93c5fd; }
     color: rgba(226, 232, 240, 0.85);
     border-radius: .5rem;
 }
+.share-slug-row .form-control.share-field--invalid,
+.share-url-preview .form-control.share-field--invalid{
+    background: rgba(239, 68, 68, 0.1) !important;
+    border-color: rgba(248, 113, 113, 0.42) !important;
+    color: rgba(254, 226, 226, 0.92);
+}
+.share-slug-row .form-control.share-field--invalid:focus,
+.share-url-preview .form-control.share-field--invalid:focus{
+    background: rgba(239, 68, 68, 0.14) !important;
+    border-color: rgba(248, 113, 113, 0.55) !important;
+    box-shadow: 0 0 0 .15rem rgba(239, 68, 68, 0.12);
+}
+.share-slug-row .form-control.share-field--valid,
+.share-url-preview .form-control.share-field--valid{
+    background: rgba(34, 197, 94, 0.1) !important;
+    border-color: rgba(74, 222, 128, 0.42) !important;
+    color: rgba(220, 252, 231, 0.95);
+}
+.share-slug-row .form-control.share-field--valid:focus,
+.share-url-preview .form-control.share-field--valid:focus{
+    background: rgba(34, 197, 94, 0.14) !important;
+    border-color: rgba(74, 222, 128, 0.55) !important;
+    box-shadow: 0 0 0 .15rem rgba(34, 197, 94, 0.12);
+}
 .share-badge{
     display: inline-flex;
     align-items: center;
@@ -1665,6 +1689,7 @@ const publicState = {
     isSubmitting: false,
     showPasswordForm: false,
     clearPasswordOnSave: false,
+    slugRejected: false,
 };
 
 function syncPublicButtonInList(messagePk, isPublic, extra = {}) {
@@ -1680,12 +1705,41 @@ function syncPublicButtonInList(messagePk, isPublic, extra = {}) {
     btn.classList.toggle("icon-btn--public-active", !!isPublic);
 }
 
-function updateShareUrlPreview() {
-    const input = document.getElementById("shareUrlPreview");
-    if (!input) return;
-    const slug = document.getElementById("shareSlugInput")?.value?.trim().toLowerCase() || publicState.slug;
-    publicState.shareUrl = messageShareUrl(publicState.profileSlug, slug);
-    input.value = publicState.shareUrl;
+function isValidShareSlug(slug) {
+    const s = String(slug || "").trim().toLowerCase();
+    if (!s) return false;
+    return /^[0-9a-z][0-9a-z\-]*$/i.test(s);
+}
+
+function updateShareFieldStates() {
+    const slugInput = document.getElementById("shareSlugInput");
+    const urlInput = document.getElementById("shareUrlPreview");
+    if (!slugInput || !urlInput) return;
+
+    const slug = slugInput.value.trim().toLowerCase();
+    publicState.slug = slug;
+    const formatValid = isValidShareSlug(slug);
+    const valid = formatValid && !publicState.slugRejected;
+
+    slugInput.classList.remove("share-field--valid", "share-field--invalid");
+    urlInput.classList.remove("share-field--valid", "share-field--invalid");
+
+    if (valid) {
+        slugInput.classList.add("share-field--valid");
+        urlInput.classList.add("share-field--valid");
+        publicState.shareUrl = messageShareUrl(publicState.profileSlug, slug);
+        urlInput.value = publicState.shareUrl;
+    } else {
+        slugInput.classList.add("share-field--invalid");
+        urlInput.classList.add("share-field--invalid");
+        if (formatValid) {
+            publicState.shareUrl = messageShareUrl(publicState.profileSlug, slug);
+            urlInput.value = publicState.shareUrl;
+        } else {
+            publicState.shareUrl = "";
+            urlInput.value = "";
+        }
+    }
 }
 
 function setShareFormError(msg) {
@@ -1701,9 +1755,9 @@ function bindShareModalEvents() {
 
     const slugInput = document.getElementById("shareSlugInput");
     slugInput?.addEventListener("input", () => {
-        publicState.slug = slugInput.value.trim().toLowerCase();
+        publicState.slugRejected = false;
         setShareFormError("");
-        updateShareUrlPreview();
+        updateShareFieldStates();
     });
 
     document.getElementById("shareGenerateSlugBtn")?.addEventListener("click", () => {
@@ -1711,9 +1765,9 @@ function bindShareModalEvents() {
         if (!pk) return;
         const generated = generateDefaultSlug(pk);
         if (slugInput) slugInput.value = generated;
-        publicState.slug = generated;
+        publicState.slugRejected = false;
         setShareFormError("");
-        updateShareUrlPreview();
+        updateShareFieldStates();
     });
 
     document.getElementById("shareCopyUrlBtn")?.addEventListener("click", async () => {
@@ -1767,7 +1821,9 @@ function renderPublicModalContent() {
         ? `<button type="button" id="shareClearPasswordBtn" class="btn btn-outline-danger btn-sm">Remove</button>`
         : "";
 
-    publicState.shareUrl = messageShareUrl(publicState.profileSlug, publicState.slug);
+    publicState.shareUrl = isValidShareSlug(publicState.slug)
+        ? messageShareUrl(publicState.profileSlug, publicState.slug)
+        : "";
 
     body.innerHTML = `
         <div class="share-modal-section">
@@ -1819,6 +1875,7 @@ function renderPublicModalContent() {
     `;
 
     bindShareModalEvents();
+    updateShareFieldStates();
 }
 
 function openPublicModal(messagePk, isPublic, extra = {}) {
@@ -1827,15 +1884,15 @@ function openPublicModal(messagePk, isPublic, extra = {}) {
     publicState.messagePk = pk;
     publicState.isPublic = !!isPublic;
     publicState.slug = String(extra.slug || "").trim().toLowerCase();
-    if (!publicState.slug) {
-        publicState.slug = generateDefaultSlug(pk);
-    }
     publicState.profileSlug = String(extra.profileSlug || encodeProfileSlug(CURRENT_USER_ID)).toLowerCase();
     publicState.hasPassword = !!extra.hasPassword;
-    publicState.shareUrl = extra.url || messageShareUrl(publicState.profileSlug, publicState.slug);
+    publicState.shareUrl = extra.url || (isValidShareSlug(publicState.slug)
+        ? messageShareUrl(publicState.profileSlug, publicState.slug)
+        : "");
     publicState.isSubmitting = false;
     publicState.showPasswordForm = false;
     publicState.clearPasswordOnSave = false;
+    publicState.slugRejected = false;
     setShareFormError("");
     renderPublicModalContent();
     getPublicModalInstance()?.show();
@@ -1850,12 +1907,9 @@ async function saveMessageSharing() {
     const isPublic = !!document.getElementById("sharePublicToggle")?.checked;
     const newPassword = document.getElementById("sharePasswordInput")?.value?.trim() || "";
 
-    if (!slug) {
-        setShareFormError("Please enter a slug for the link.");
-        return;
-    }
-    if (!/^[0-9a-z][0-9a-z\-]*$/i.test(slug)) {
-        setShareFormError("Slug may only contain letters, numbers, and hyphens.");
+    if (!isValidShareSlug(slug)) {
+        setShareFormError("Please enter a valid slug for the link.");
+        updateShareFieldStates();
         return;
     }
 
@@ -1891,11 +1945,15 @@ async function saveMessageSharing() {
 
         if (!res.ok) {
             if (data?.error === "slug_taken") {
+                publicState.slugRejected = true;
                 setShareFormError(data?.message || "This slug is already in use.");
+                updateShareFieldStates();
                 return;
             }
             if (data?.error === "slug_invalid") {
+                publicState.slugRejected = true;
                 setShareFormError("Invalid slug format.");
+                updateShareFieldStates();
                 return;
             }
             if (data?.error === "password_too_short") {
@@ -2088,6 +2146,7 @@ loadMessages();
         publicState.isSubmitting = false;
         publicState.showPasswordForm = false;
         publicState.clearPasswordOnSave = false;
+        publicState.slugRejected = false;
         setShareFormError("");
     });
 
