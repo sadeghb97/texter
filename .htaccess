@@ -4,7 +4,12 @@ RewriteEngine On
 RewriteRule ^(api|assets)(/|$) - [L,NC]
 RewriteRule ^(login|register|logout|index|text)(\.php)?$ - [L,NC]
 
-# Pretty public text URLs: /<base36-id>
+# Pretty message URLs: /<profile_pk_base36>/<slug>
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([0-9a-z]+)/([0-9a-z][0-9a-z\-]*)$ text.php?ppk=$1&mid=$2 [L,QSA,NC]
+
+# Legacy single-segment URLs (base36 message pk)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^([0-9a-z]+)$ text.php?text=$1 [L,QSA,NC]

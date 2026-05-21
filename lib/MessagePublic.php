@@ -21,6 +21,27 @@ class MessagePublic
         return $pk > 0 ? $pk : null;
     }
 
+    public static function isValidSlug(string $slug): bool
+    {
+        $slug = trim($slug);
+        if ($slug === '' || strlen($slug) > 64) {
+            return false;
+        }
+        return (bool)preg_match('/^[0-9a-z][0-9a-z\-]*$/i', $slug);
+    }
+
+    public static function normalizeSlug(string $slug): string
+    {
+        return strtolower(trim($slug));
+    }
+
+    public static function generateDefaultSlug(int $messagePk): string
+    {
+        $base = self::encodeId($messagePk);
+        $suffix = str_pad((string)random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+        return $base . '-' . $suffix;
+    }
+
     /**
      * Web path to the app root (e.g. "/texter"), not the current script directory.
      */
@@ -46,7 +67,6 @@ class MessagePublic
             }
         }
 
-        // Fallback when document root mapping is unavailable.
         $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/index.php');
         $dir = dirname($script);
         if (preg_match('#/api$#', $dir)) {
@@ -59,6 +79,19 @@ class MessagePublic
         }
 
         return $base;
+    }
+
+    /**
+     * Root-relative URL for static assets and app scripts (works with pretty URLs).
+     */
+    public static function assetUrl(string $path): string
+    {
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+        $base = self::appBasePath();
+        if ($base === '') {
+            return '/' . $path;
+        }
+        return $base . '/' . $path;
     }
 
     public static function requestOrigin(): string
@@ -77,20 +110,43 @@ class MessagePublic
         return $scheme . '://' . $host;
     }
 
-    public static function publicPath(int $pk): string
+    public static function messagePath(int $profilePk, string $slug): string
     {
-        $slug = self::encodeId($pk);
+        $ppk = self::encodeId($profilePk);
+        $slug = self::normalizeSlug($slug);
+        if ($ppk === '' || $slug === '') {
+            return '';
+        }
         $base = self::appBasePath();
-        return ($base !== '' ? $base : '') . '/' . $slug;
+        return ($base !== '' ? $base : '') . '/' . $ppk . '/' . rawurlencode($slug);
     }
 
-    public static function publicUrl(int $pk, bool $absolute = true): string
+    public static function messageUrl(int $profilePk, string $slug, bool $absolute = true): string
     {
-        $path = self::publicPath($pk);
+        $path = self::messagePath($profilePk, $slug);
+        if ($path === '') {
+            return '';
+        }
         if (!$absolute) {
             return $path;
         }
-
         return self::requestOrigin() . $path;
+    }
+
+    /** @deprecated Use messagePath() with profile_pk and slug */
+    public static function publicPath(int $pk): string
+    {
+        return self::messagePath($pk, self::encodeId($pk));
+    }
+
+    /** @deprecated Use messageUrl() with profile_pk and slug */
+    public static function publicUrl(int $pk, bool $absolute = true): string
+    {
+        return self::messageUrl($pk, self::encodeId($pk), $absolute);
+    }
+
+    public static function messageHasPassword(?string $passwordHash): bool
+    {
+        return $passwordHash !== null && trim($passwordHash) !== '';
     }
 }

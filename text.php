@@ -7,34 +7,102 @@ use Avetify\Themes\Main\ThemesManager;
 $conn = new TexterConnection();
 $auth = new TexterAuth();
 
-$slug = isset($_GET['text']) ? (string)$_GET['text'] : '';
-$messagePk = MessagePublic::decodeId($slug);
+$legacySlug = isset($_GET['text']) ? (string)$_GET['text'] : '';
+$ppkParam = isset($_GET['ppk']) ? (string)$_GET['ppk'] : '';
+$midParam = isset($_GET['mid']) ? (string)$_GET['mid'] : '';
 
 $message = null;
 $notFound = false;
+$needsPassword = false;
+$passwordError = '';
+$messagePk = 0;
 
-if ($messagePk) {
+function fetch_message_by_pk(TexterConnection $conn, int $messagePk): ?array
+{
+    if ($messagePk <= 0) {
+        return null;
+    }
     $messagePkEsc = (int)$messagePk;
     $res = $conn->query(
-        "SELECT m.pk, m.text, m.profile_pk, m.public, m.created_at, u.username AS author_username
+        "SELECT m.pk, m.text, m.profile_pk, m.public, m.slug, m.password, m.created_at, u.username AS author_username
          FROM messages m
          INNER JOIN users u ON u.id = m.author_pk
          WHERE m.pk = $messagePkEsc
          LIMIT 1"
     );
     $row = $res ? $res->fetch_assoc() : null;
+    return $row ?: null;
+}
 
-    if ($row) {
-        $isPublic = (int)($row['public'] ?? 0) === 1;
-        $isOwner = $auth->isLoggedIn() && (int)$auth->currentUserId() === (int)$row['profile_pk'];
-        if ($isPublic || $isOwner) {
-            $message = $row;
-        } else {
-            $notFound = true;
-        }
-    } else {
-        $notFound = true;
+function fetch_message_by_profile_and_slug(TexterConnection $conn, int $profilePk, string $slug): ?array
+{
+    if ($profilePk <= 0 || $slug === '') {
+        return null;
     }
+    $profilePkEsc = (int)$profilePk;
+    $slugEsc = $conn->real_escape_string($slug);
+    $res = $conn->query(
+        "SELECT m.pk, m.text, m.profile_pk, m.public, m.slug, m.password, m.created_at, u.username AS author_username
+         FROM messages m
+         INNER JOIN users u ON u.id = m.author_pk
+         WHERE m.profile_pk = $profilePkEsc AND m.slug = '$slugEsc'
+         LIMIT 1"
+    );
+    $row = $res ? $res->fetch_assoc() : null;
+    return $row ?: null;
+}
+
+function can_view_message_row(array $row, TexterAuth $auth): bool
+{
+    $isPublic = (int)($row['public'] ?? 0) === 1;
+    $isOwner = $auth->isLoggedIn() && (int)$auth->currentUserId() === (int)$row['profile_pk'];
+    return $isPublic || $isOwner;
+}
+
+$row = null;
+
+if ($ppkParam !== '' && $midParam !== '') {
+    $profilePk = MessagePublic::decodeId($ppkParam);
+    $slug = MessagePublic::normalizeSlug($midParam);
+    if ($profilePk && $slug !== '' && MessagePublic::isValidSlug($slug)) {
+        $row = fetch_message_by_profile_and_slug($conn, $profilePk, $slug);
+    }
+} elseif ($legacySlug !== '') {
+    $messagePk = MessagePublic::decodeId($legacySlug) ?? 0;
+    if ($messagePk > 0) {
+        $row = fetch_message_by_pk($conn, $messagePk);
+    }
+}
+
+if ($row) {
+    if (!can_view_message_row($row, $auth)) {
+        $notFound = true;
+    } else {
+        $messagePk = (int)$row['pk'];
+        $hasPassword = MessagePublic::messageHasPassword($row['password'] ?? null);
+        $isOwner = $auth->isLoggedIn() && (int)$auth->currentUserId() === (int)$row['profile_pk'];
+
+        if ($hasPassword && !$isOwner) {
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $postedPassword = trim((string)($_POST['message_unlock'] ?? ''));
+                $hash = (string)($row['password'] ?? '');
+                if ($postedPassword !== '' && password_verify($postedPassword, $hash)) {
+                    $message = $row;
+                } else {
+                    $needsPassword = true;
+                    $passwordError = $postedPassword === ''
+                        ? 'Please enter the password.'
+                        : 'Incorrect password.';
+                }
+            } else {
+                $needsPassword = true;
+            }
+        } else {
+            $message = $row;
+        }
+    }
+} elseif ($ppkParam !== '' || $midParam !== '' || $legacySlug !== '') {
+    $notFound = true;
 } else {
     $notFound = true;
 }
@@ -46,6 +114,9 @@ if ($notFound) {
 $topbarBrandText = $auth->isLoggedIn() ? (string)$auth->currentUsername() : 'Texter';
 $topbarLoggedIn = $auth->isLoggedIn();
 $topbarOnTextPage = true;
+$assetUrl = static function (string $path): string {
+    return htmlspecialchars(MessagePublic::assetUrl($path), ENT_QUOTES, 'UTF-8');
+};
 
 function format_tehran_datetime(int $unixSeconds): string
 {
@@ -62,9 +133,9 @@ function format_tehran_datetime(int $unixSeconds): string
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?php echo $message ? 'Message' : 'Not found'; ?> · Texter</title>
-<link rel="icon" type="image/png" href="assets/img/favicon.png">
-<link rel="shortcut icon" type="image/png" href="assets/img/favicon.png">
+<title><?php echo $message ? 'Message' : ($needsPassword ? 'Protected message' : 'Not found'); ?> · Texter</title>
+<link rel="icon" type="image/png" href="<?php echo $assetUrl('assets/img/favicon.png'); ?>">
+<link rel="shortcut icon" type="image/png" href="<?php echo $assetUrl('assets/img/favicon.png'); ?>">
 <?php ThemesManager::importBootstrapCSS(); ?>
 <style>
 html, body { height: 100%; }
@@ -79,6 +150,7 @@ body {
     --border: rgba(148, 163, 184, 0.18);
     --text: #e2e8f0;
     --muted: #94a3b8;
+    --accent: #38bdf8;
 }
 .app-shell{
     height: 100dvh;
@@ -124,13 +196,84 @@ body {
     color: var(--text);
 }
 .message-box small{ color: var(--muted); }
-.not-found-card{
+.not-found-card,
+.unlock-card{
     background: rgba(30, 41, 59, 0.72);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 1.25rem 1.35rem;
-    text-align: center;
+    padding: 1.35rem 1.5rem;
     color: rgba(226, 232, 240, 0.88);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+.unlock-card{
+    max-width: 420px;
+    margin: 0 auto;
+}
+.unlock-card__icon{
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    color: #7dd3fc;
+    font-size: 1.25rem;
+    margin-bottom: .85rem;
+}
+.unlock-card h1{
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 .35rem;
+}
+.unlock-card p{
+    color: rgba(226, 232, 240, 0.65);
+    font-size: .9rem;
+    margin: 0 0 1.1rem;
+}
+.unlock-card .form-control{
+    background: rgba(15, 23, 42, 0.55);
+    border-color: var(--border);
+    color: var(--text);
+    border-radius: .55rem;
+}
+.unlock-card .form-control:focus{
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(56, 189, 248, 0.45);
+    color: var(--text);
+    box-shadow: 0 0 0 .2rem rgba(56, 189, 248, 0.15);
+}
+/* Mask like password without type=password (avoids browser save-password UI) */
+.unlock-field-masked{
+    -webkit-text-security: disc;
+    text-security: disc;
+}
+.unlock-autofill-trap{
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+.unlock-card .btn-primary{
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+    border-radius: .55rem;
+    font-weight: 600;
+    padding: .55rem 1rem;
+}
+.unlock-card .btn-primary:hover{
+    background: #0284c7;
+    border-color: #0284c7;
+}
+.unlock-error{
+    font-size: .85rem;
+    color: #fca5a5;
+    min-height: 1.25rem;
+    margin-top: .5rem;
 }
 .icon-btn--msg{
     padding: .5rem .8rem;
@@ -182,18 +325,13 @@ body {
 .copy-btn--copied img{
     filter: brightness(0) saturate(100%) invert(64%) sepia(54%) saturate(463%) hue-rotate(89deg) brightness(92%) contrast(92%);
 }
-.icon-btn--msg.copy-btn--copied{
-    font-size: .82rem;
-    font-weight: 600;
-    letter-spacing: .01em;
-}
 </style>
 </head>
 <body>
 <div class="app-shell">
     <?php require __DIR__ . '/partials/topbar.php'; ?>
 
-    <main class="app-content" aria-label="Public message">
+    <main class="app-content" aria-label="Message">
         <div class="container text-page-inner">
             <?php if ($message): ?>
                 <?php
@@ -218,14 +356,55 @@ body {
                                 aria-label="Copy"
                                 title="Copy"
                             >
-                                <img src="assets/img/icons/clipboard-copy.svg" alt="" aria-hidden="true">
+                                <img src="<?php echo $assetUrl('assets/img/icons/clipboard-copy.svg'); ?>" alt="" aria-hidden="true">
                             </button>
                         </div>
                     </div>
                     <div id="messageText" class="message-text" style="white-space: pre-wrap;"><?php echo $text; ?></div>
                 </article>
+            <?php elseif ($needsPassword): ?>
+                <div class="unlock-card" role="form" aria-labelledby="unlockTitle">
+                    <div class="unlock-card__icon" aria-hidden="true">&#128274;</div>
+                    <h1 id="unlockTitle">Password required</h1>
+                    <p>This message is protected. Enter the password to view it.</p>
+                    <form method="post" action="" autocomplete="off" novalidate>
+                        <div class="unlock-autofill-trap" aria-hidden="true">
+                            <input type="text" tabindex="-1" autocomplete="off">
+                            <input type="text" tabindex="-1" autocomplete="off">
+                        </div>
+                        <label for="messageUnlockInput" class="form-label visually-hidden">Password</label>
+                        <input
+                            type="text"
+                            class="form-control unlock-field-masked"
+                            id="messageUnlockInput"
+                            name="message_unlock"
+                            placeholder="Password"
+                            autocomplete="off"
+                            autocapitalize="off"
+                            autocorrect="off"
+                            spellcheck="false"
+                            inputmode="text"
+                            aria-label="Message password"
+                            readonly
+                            onfocus="this.removeAttribute('readonly');"
+                            data-lpignore="true"
+                            data-1p-ignore
+                            data-bwignore
+                            data-form-type="other"
+                            required
+                        >
+                        <?php if ($passwordError !== ''): ?>
+                        <div class="unlock-error" role="alert"><?php echo htmlspecialchars($passwordError, ENT_QUOTES, 'UTF-8'); ?></div>
+                        <?php else: ?>
+                        <div class="unlock-error" role="alert" aria-hidden="true"></div>
+                        <?php endif; ?>
+                        <button type="submit" class="btn btn-primary w-100 mt-3">
+                            View message
+                        </button>
+                    </form>
+                </div>
             <?php else: ?>
-                <div class="not-found-card" role="alert">
+                <div class="not-found-card text-center" role="alert">
                     <h1 class="h5 mb-2">Message not found</h1>
                     <p class="mb-0" style="color: rgba(226, 232, 240, 0.7);">This message does not exist or is not available.</p>
                 </div>
@@ -238,23 +417,13 @@ body {
 <?php ThemesManager::importBootstrapJS(); ?>
 <script>
 async function copyText(btn, text) {
-    const originalDisabled = btn?.disabled ?? false;
-    const originalClassName = btn?.className ?? "";
-    const originalInnerHTML = btn?.innerHTML ?? "";
-    const originalAriaLabel = btn?.getAttribute?.("aria-label") ?? "Copy";
-    const originalTitle = btn?.getAttribute?.("title") ?? "Copy";
-
-    const setState = (label, disabled) => {
-        if (!btn) return;
-        btn.setAttribute("aria-label", label);
-        btn.setAttribute("title", label);
-        btn.disabled = disabled;
-    };
+    if (!btn) return;
+    const originalDisabled = btn.disabled;
+    const originalAriaLabel = btn.getAttribute("aria-label") ?? "Copy";
+    const originalTitle = btn.getAttribute("title") ?? "Copy";
 
     const restoreButton = () => {
-        if (!btn) return;
-        btn.className = originalClassName;
-        btn.innerHTML = originalInnerHTML;
+        btn.classList.remove("copy-btn--copied");
         btn.setAttribute("aria-label", originalAriaLabel);
         btn.setAttribute("title", originalTitle);
         btn.disabled = originalDisabled;
@@ -277,16 +446,18 @@ async function copyText(btn, text) {
             if (!ok) throw new Error("Copy failed");
         }
 
-        setState("Copied", true);
-        if (btn) {
-            btn.classList.add("copy-btn--copied");
-            btn.textContent = "Copied";
-        }
+        btn.classList.add("copy-btn--copied");
+        btn.setAttribute("aria-label", "Copied");
+        btn.setAttribute("title", "Copied");
+        btn.disabled = true;
         setTimeout(restoreButton, 3000);
     } catch (_) {
-        setState("Failed", true);
-        if (btn) btn.textContent = "Failed";
-        setTimeout(restoreButton, 1500);
+        btn.setAttribute("aria-label", "Copy failed");
+        btn.setAttribute("title", "Copy failed");
+        setTimeout(() => {
+            btn.setAttribute("aria-label", originalAriaLabel);
+            btn.setAttribute("title", originalTitle);
+        }, 1500);
     }
 }
 

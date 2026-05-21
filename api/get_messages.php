@@ -20,6 +20,7 @@ if ($limit > 50) $limit = 50;
 
 $offset = ($page - 1) * $limit;
 $profilePk = (int)$auth->currentUserId();
+$profileSlug = MessagePublic::encodeId($profilePk);
 
 $totalRow = $conn
     ->query("SELECT COUNT(*) as cnt FROM messages m WHERE m.profile_pk = $profilePk")
@@ -28,7 +29,7 @@ $total = (int)($totalRow['cnt'] ?? 0);
 $total_pages = (int)ceil($total / $limit);
 
 $res = $conn->query(
-    "SELECT m.pk, m.text, m.author_pk, m.created_at, m.public, u.username AS author_username
+    "SELECT m.pk, m.text, m.author_pk, m.created_at, m.public, m.slug, m.password, u.username AS author_username
      FROM messages m
      INNER JOIN users u ON u.id = m.author_pk
      WHERE m.profile_pk = $profilePk
@@ -38,17 +39,23 @@ $res = $conn->query(
 
 $messages=[];
 while($row=$res->fetch_assoc()){
+    $slug = isset($row['slug']) ? (string)$row['slug'] : '';
     $messages[]=[
         "text" => $row['text'],
         "author" => $row['author_username'] ?? null,
         "pk" => (int)$row['pk'],
         "public" => (int)($row['public'] ?? 0),
+        "slug" => $slug,
+        "profile_slug" => $profileSlug,
+        "has_password" => MessagePublic::messageHasPassword($row['password'] ?? null),
+        "url" => $slug !== '' ? MessagePublic::messageUrl($profilePk, $slug, true) : '',
         "created_at" => isset($row['created_at']) ? (int)$row['created_at'] : null
     ];
 }
 
 echo json_encode([
     "messages" => $messages,
+    "profile_slug" => $profileSlug,
     "total_pages" => $total_pages,
     "page" => $page,
     "limit" => $limit

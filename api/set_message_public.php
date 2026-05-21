@@ -13,7 +13,13 @@ if (!$auth->isLoggedIn()) {
 }
 
 $data = json_decode(file_get_contents("php://input"), true);
-$messagePkRaw = is_array($data) && array_key_exists('message_pk', $data) ? $data['message_pk'] : null;
+if (!is_array($data)) {
+    http_response_code(400);
+    echo json_encode(["error" => "invalid_json"]);
+    exit;
+}
+
+$messagePkRaw = array_key_exists('message_pk', $data) ? $data['message_pk'] : null;
 
 $messagePk = 0;
 if (is_int($messagePkRaw)) {
@@ -31,12 +37,10 @@ if ($messagePk <= 0) {
 }
 
 $wantPublic = null;
-if (is_array($data)) {
-    if (array_key_exists('public', $data)) {
-        $wantPublic = (bool)(int)$data['public'];
-    } elseif (array_key_exists('is_public', $data)) {
-        $wantPublic = (bool)$data['is_public'];
-    }
+if (array_key_exists('public', $data)) {
+    $wantPublic = (bool)(int)$data['public'];
+} elseif (array_key_exists('is_public', $data)) {
+    $wantPublic = (bool)$data['is_public'];
 }
 
 if ($wantPublic === null) {
@@ -49,7 +53,7 @@ $profilePk = (int)$auth->currentUserId();
 $messagePkEsc = (int)$messagePk;
 
 $res = $conn->query(
-    "SELECT pk, public FROM messages WHERE pk = $messagePkEsc AND profile_pk = $profilePk LIMIT 1"
+    "SELECT pk, public, slug, password FROM messages WHERE pk = $messagePkEsc AND profile_pk = $profilePk LIMIT 1"
 );
 $row = $res ? $res->fetch_assoc() : null;
 if (!$row) {
@@ -58,12 +62,75 @@ if (!$row) {
     exit;
 }
 
-$newPublic = $wantPublic ? 1 : 0;
-$conn->query("UPDATE messages SET public = $newPublic WHERE pk = $messagePkEsc AND profile_pk = $profilePk LIMIT 1");
+$slugProvided = array_key_exists('slug', $data);
+$newSlug = $slugProvided ? MessagePublic::normalizeSlug((string)$data['slug']) : (string)($row['slug'] ?? '');
 
+if ($slugProvided) {
+    if ($newSlug === '' || !MessagePublic::isValidSlug($newSlug)) {
+        http_response_code(400);
+        echo json_encode(["error" => "slug_invalid"]);
+        exit;
+    }
+
+    $slugEsc = $conn->real_escape_string($newSlug);
+    $dupRes = $conn->query(
+        "SELECT pk FROM messages
+         WHERE profile_pk = $profilePk AND slug = '$slugEsc' AND pk != $messagePkEsc
+         LIMIT 1"
+    );
+    if ($dupRes && $dupRes->fetch_assoc()) {
+        http_response_code(409);
+        echo json_encode(["error" => "slug_taken", "message" => "This slug is already in use."]);
+        exit;
+    }
+}
+
+$newPublic = $wantPublic ? 1 : 0;
+$slugSql = 'NULL';
+if ($newSlug !== '') {
+    $slugSql = "'" . $conn->real_escape_string($newSlug) . "'";
+}
+
+$passwordSql = null;
+if (array_key_exists('clear_password', $data) && $data['clear_password']) {
+    $passwordSql = 'NULL';
+} elseif (array_key_exists('password', $data)) {
+    $plain = trim((string)$data['password']);
+    if ($plain === '') {
+        $passwordSql = 'NULL';
+    } else {
+        if (strlen($plain) < 4) {
+            http_response_code(400);
+            echo json_encode(["error" => "password_too_short"]);
+            exit;
+        }
+        $passwordSql = "'" . $conn->real_escape_string(password_hash($plain, PASSWORD_DEFAULT)) . "'";
+    }
+}
+
+$setParts = ["public = $newPublic", "slug = $slugSql"];
+if ($passwordSql !== null) {
+    $setParts[] = "password = $passwordSql";
+}
+$setClause = implode(', ', $setParts);
+
+$conn->query("UPDATE messages SET $setClause WHERE pk = $messagePkEsc AND profile_pk = $profilePk LIMIT 1");
+
+$hasPassword = false;
+if ($passwordSql === 'NULL') {
+    $hasPassword = false;
+} elseif ($passwordSql !== null) {
+    $hasPassword = true;
+} else {
+    $hasPassword = MessagePublic::messageHasPassword($row['password'] ?? null);
+}
+
+$finalSlug = $newSlug;
 echo json_encode([
     "status" => "ok",
     "public" => $newPublic,
-    "public_slug" => MessagePublic::encodeId($messagePk),
-    "url" => MessagePublic::publicUrl($messagePk, true),
+    "slug" => $finalSlug,
+    "profile_slug" => MessagePublic::encodeId($profilePk),
+    "has_password" => $hasPassword,
+    "url" => $finalSlug !== '' ? MessagePublic::messageUrl($profilePk, $finalSlug, true) : '',
 ]);

@@ -33,7 +33,9 @@ CREATE TABLE `messages` (
   `profile_pk` int(11) NOT NULL,
   `author_pk` int(11) NOT NULL,
   `created_at` int(11) NOT NULL,
-  `public` tinyint(1) NOT NULL DEFAULT 0
+  `public` tinyint(1) NOT NULL DEFAULT 0,
+  `slug` varchar(64) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -70,7 +72,8 @@ CREATE TABLE `user_tokens` (
 -- Indexes for table `messages`
 --
 ALTER TABLE `messages`
-  ADD PRIMARY KEY (`pk`);
+  ADD PRIMARY KEY (`pk`),
+  ADD UNIQUE KEY `profile_slug` (`profile_pk`,`slug`);
 
 --
 -- Indexes for table `users`

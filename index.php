@@ -198,12 +198,6 @@ a:hover { color: #93c5fd; }
 .form-control::placeholder{
     color: rgba(226, 232, 240, 0.55);
 }
-.copy-btn--copied{
-    background:#198754 !important; /* close to Bootstrap success */
-    border-color:#198754 !important;
-    color:#fff !important;
-    font-weight:700;
-}
 /* --- Icon buttons (unified styling) --- */
 .icon-btn{
     --icon-btn-bg: rgba(15, 23, 42, 0.32);
@@ -311,11 +305,6 @@ a:hover { color: #93c5fd; }
     /* green-ish */
     filter: brightness(0) saturate(100%) invert(64%) sepia(54%) saturate(463%) hue-rotate(89deg) brightness(92%) contrast(92%);
 }
-.icon-btn--msg.copy-btn--copied{
-    font-size: .82rem;
-    font-weight: 600;
-    letter-spacing: .01em;
-}
 
 /* Public message icon — active when message is public */
 .icon-btn--public-active{
@@ -328,56 +317,178 @@ a:hover { color: #93c5fd; }
     filter: brightness(0) saturate(100%) invert(78%) sepia(42%) saturate(900%) hue-rotate(166deg) brightness(102%) contrast(96%);
 }
 
-/* Public / private modal */
-.public-modal-status{
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    padding: .3rem .65rem;
-    border-radius: 999px;
-    font-size: .82rem;
-    font-weight: 600;
-    letter-spacing: .02em;
-    border: 1px solid var(--border);
+/* Sharing modal */
+#publicMessageModal .modal-content{
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: var(--text);
 }
-.public-modal-status--public{
-    background: rgba(56, 189, 248, 0.14);
-    border-color: rgba(56, 189, 248, 0.35);
-    color: #bae6fd;
+#publicMessageModal .modal-header,
+#publicMessageModal .modal-footer{
+    border-color: rgba(148, 163, 184, 0.16);
 }
-.public-modal-status--private{
-    background: rgba(148, 163, 184, 0.12);
-    color: rgba(226, 232, 240, 0.85);
+#publicMessageModal .btn-close{
+    filter: invert(1) grayscale(100%) brightness(200%);
 }
-.public-link-field{
+.share-modal-section{
+    padding: .85rem 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+.share-modal-section:last-child{
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.share-modal-section:first-child{
+    padding-top: 0;
+}
+.share-row{
     display: flex;
-    gap: .5rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.share-row__label{
+    font-size: .92rem;
+    font-weight: 600;
+    margin: 0;
+}
+.share-row__hint{
+    font-size: .78rem;
+    color: var(--muted);
+    margin: .15rem 0 0;
+}
+.share-toggle{
+    position: relative;
+    width: 46px;
+    height: 26px;
+    flex-shrink: 0;
+}
+.share-toggle input{
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+.share-toggle__track{
+    position: absolute;
+    inset: 0;
+    background: rgba(148, 163, 184, 0.25);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .2s ease;
+}
+.share-toggle__track::after{
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.share-toggle input:checked + .share-toggle__track{
+    background: #0ea5e9;
+}
+.share-toggle input:checked + .share-toggle__track::after{
+    transform: translateX(20px);
+}
+.share-toggle input:focus-visible + .share-toggle__track{
+    outline: 2px solid rgba(56, 189, 248, 0.55);
+    outline-offset: 2px;
+}
+.share-field-label{
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: .4rem;
+}
+.share-slug-row{
+    display: flex;
+    gap: .45rem;
     align-items: stretch;
 }
-.public-link-field .form-control{
+.share-slug-row .form-control{
     font-size: .9rem;
     border-radius: .55rem;
+    background: rgba(15, 23, 42, 0.45);
+    border-color: var(--border);
+    color: var(--text);
 }
-.public-link-copy-btn{
+.share-slug-row .form-control:focus{
+    background: rgba(15, 23, 42, 0.65);
+    border-color: rgba(56, 189, 248, 0.45);
+    color: var(--text);
+    box-shadow: 0 0 0 .15rem rgba(56, 189, 248, 0.12);
+}
+.share-slug-row .share-icon-btn,
+.share-url-preview .share-icon-btn{
     flex: 0 0 auto;
-    white-space: nowrap;
+    padding: .5rem .65rem;
+    min-width: 44px;
+    min-height: 44px;
 }
-.btn-public-action{
-    min-width: 9.5rem;
+.share-url-preview{
+    display: flex;
+    gap: .45rem;
+    align-items: stretch;
+    margin-top: .55rem;
 }
-.btn-make-private{
-    background: #dc3545;
-    border-color: #dc3545;
-    color: #fff;
+.share-url-preview .form-control{
+    font-size: .82rem;
+    background: rgba(15, 23, 42, 0.35);
+    border-color: rgba(148, 163, 184, 0.14);
+    color: rgba(226, 232, 240, 0.85);
+    border-radius: .5rem;
 }
-.btn-make-private:hover,
-.btn-make-private:focus{
-    background: #bb2d3b;
-    border-color: #b02a37;
-    color: #fff;
+.share-badge{
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .25rem .6rem;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
 }
-.btn-make-private:disabled{
-    opacity: .85;
+.share-badge--on{
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #86efac;
+}
+.share-badge--off{
+    background: rgba(148, 163, 184, 0.1);
+    color: rgba(226, 232, 240, 0.75);
+}
+.share-password-panel{
+    margin-top: .65rem;
+    padding: .75rem;
+    border-radius: .6rem;
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+}
+.share-password-panel.d-none{ display: none !important; }
+.share-password-panel .form-control{
+    background: rgba(15, 23, 42, 0.55);
+    border-color: var(--border);
+    color: var(--text);
+    border-radius: .5rem;
+}
+.share-form-error{
+    font-size: .82rem;
+    color: #fca5a5;
+    min-height: 1.2rem;
+    margin-top: .5rem;
+}
+.share-form-error:empty{ display: none; }
+#publicMessageSaveBtn{
+    min-width: 8rem;
+    font-weight: 600;
+    border-radius: .55rem;
 }
 
 /* Message modal: advanced-mode toggle (header, near close) */
@@ -758,10 +869,14 @@ a:hover { color: #93c5fd; }
 <div class="modal-dialog modal-dialog-centered">
 <div class="modal-content">
 <div class="modal-header">
-    <h5 class="modal-title" id="publicMessageModalTitle">Sharing</h5>
+    <h5 class="modal-title" id="publicMessageModalTitle">Share message</h5>
     <button id="publicMessageCloseX" type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 <div class="modal-body" id="publicMessageModalBody"></div>
+<div class="modal-footer border-0 pt-0">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button type="button" id="publicMessageSaveBtn" class="btn btn-primary">Save changes</button>
+</div>
 </div>
 </div>
 </div>
@@ -1001,8 +1116,12 @@ async function loadMessages(page = 1) {
             const msgPk = Number(msg?.pk || 0);
             const isPublic = Number(msg?.public || 0) === 1;
             const publicActiveClass = isPublic ? " icon-btn--public-active" : "";
+            const msgSlug = escapeHtml(String(msg?.slug || "").toLowerCase());
+            const profileSlug = escapeHtml(String(msg?.profile_slug || "").toLowerCase());
+            const hasPassword = msg?.has_password ? "1" : "0";
+            const shareUrl = escapeHtml(String(msg?.url || ""));
             return `
-            <div class="message-box" data-message-pk="${msgPk}" data-is-public="${isPublic ? "1" : "0"}">
+            <div class="message-box" data-message-pk="${msgPk}" data-is-public="${isPublic ? "1" : "0"}" data-slug="${msgSlug}" data-profile-slug="${profileSlug}" data-has-password="${hasPassword}" data-share-url="${shareUrl}">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <small>
                         ${authorSafe}
@@ -1384,15 +1503,23 @@ async function confirmDeleteMessage() {
     }
 }
 
-function messagePublicSlug(pk) {
-    return Number(pk).toString(36);
+function encodeProfileSlug(profilePk) {
+    return Number(profilePk || CURRENT_USER_ID || 0).toString(36);
 }
 
-function messagePublicUrl(pk) {
-    const slug = messagePublicSlug(pk);
+function generateDefaultSlug(messagePk) {
+    const base = Number(messagePk).toString(36);
+    const suffix = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+    return `${base}-${suffix}`;
+}
+
+function messageShareUrl(profileSlug, slug) {
+    const ppk = String(profileSlug || "").toLowerCase();
+    const mid = String(slug || "").trim().toLowerCase();
+    if (!ppk || !mid) return "";
     const base = APP_BASE_PATH || "";
     const origin = APP_ORIGIN || window.location.origin;
-    return `${origin}${base}/${slug}`;
+    return `${origin}${base}/${ppk}/${encodeURIComponent(mid)}`;
 }
 
 function getPublicModalInstance() {
@@ -1404,18 +1531,94 @@ function getPublicModalInstance() {
 const publicState = {
     messagePk: null,
     isPublic: false,
-    publicUrl: "",
+    slug: "",
+    profileSlug: encodeProfileSlug(CURRENT_USER_ID),
+    hasPassword: false,
+    shareUrl: "",
     isSubmitting: false,
+    showPasswordForm: false,
+    clearPasswordOnSave: false,
 };
 
-function syncPublicButtonInList(messagePk, isPublic) {
+function syncPublicButtonInList(messagePk, isPublic, extra = {}) {
     const box = document.querySelector(`.message-box[data-message-pk="${messagePk}"]`);
     if (!box) return;
     box.setAttribute("data-is-public", isPublic ? "1" : "0");
+    if (extra.slug != null) box.setAttribute("data-slug", String(extra.slug).toLowerCase());
+    if (extra.hasPassword != null) box.setAttribute("data-has-password", extra.hasPassword ? "1" : "0");
+    if (extra.url != null) box.setAttribute("data-share-url", extra.url);
     const btn = box.querySelector("button.public-btn");
     if (!btn) return;
     btn.setAttribute("data-is-public", isPublic ? "1" : "0");
     btn.classList.toggle("icon-btn--public-active", !!isPublic);
+}
+
+function updateShareUrlPreview() {
+    const input = document.getElementById("shareUrlPreview");
+    if (!input) return;
+    const slug = document.getElementById("shareSlugInput")?.value?.trim().toLowerCase() || publicState.slug;
+    publicState.shareUrl = messageShareUrl(publicState.profileSlug, slug);
+    input.value = publicState.shareUrl;
+}
+
+function setShareFormError(msg) {
+    const el = document.getElementById("shareFormError");
+    if (el) el.textContent = msg || "";
+}
+
+function bindShareModalEvents() {
+    const publicToggle = document.getElementById("sharePublicToggle");
+    publicToggle?.addEventListener("change", () => {
+        publicState.isPublic = !!publicToggle.checked;
+    });
+
+    const slugInput = document.getElementById("shareSlugInput");
+    slugInput?.addEventListener("input", () => {
+        publicState.slug = slugInput.value.trim().toLowerCase();
+        setShareFormError("");
+        updateShareUrlPreview();
+    });
+
+    document.getElementById("shareGenerateSlugBtn")?.addEventListener("click", () => {
+        const pk = Number(publicState.messagePk || 0);
+        if (!pk) return;
+        const generated = generateDefaultSlug(pk);
+        if (slugInput) slugInput.value = generated;
+        publicState.slug = generated;
+        setShareFormError("");
+        updateShareUrlPreview();
+    });
+
+    document.getElementById("shareCopyUrlBtn")?.addEventListener("click", async () => {
+        const link = document.getElementById("shareUrlPreview")?.value || publicState.shareUrl;
+        const btn = document.getElementById("shareCopyUrlBtn");
+        if (!link || !btn) return;
+        await copyText(btn, link);
+    });
+
+    document.getElementById("shareSetPasswordBtn")?.addEventListener("click", () => {
+        publicState.showPasswordForm = !publicState.showPasswordForm;
+        publicState.clearPasswordOnSave = false;
+        const panel = document.getElementById("sharePasswordPanel");
+        panel?.classList.toggle("d-none", !publicState.showPasswordForm);
+        if (publicState.showPasswordForm) {
+            document.getElementById("sharePasswordInput")?.focus();
+        }
+    });
+
+    document.getElementById("shareClearPasswordBtn")?.addEventListener("click", () => {
+        publicState.clearPasswordOnSave = true;
+        publicState.showPasswordForm = false;
+        publicState.hasPassword = false;
+        document.getElementById("sharePasswordPanel")?.classList.add("d-none");
+        const badge = document.getElementById("sharePasswordBadge");
+        if (badge) {
+            badge.className = "share-badge share-badge--off";
+            badge.textContent = "No password";
+        }
+        const pwdInput = document.getElementById("sharePasswordInput");
+        if (pwdInput) pwdInput.value = "";
+    });
 }
 
 function renderPublicModalContent() {
@@ -1430,85 +1633,172 @@ function renderPublicModalContent() {
         .replaceAll("'", "&#039;");
 
     const isPublic = !!publicState.isPublic;
-    const statusClass = isPublic ? "public-modal-status--public" : "public-modal-status--private";
-    const statusLabel = isPublic ? "Public" : "Private";
-    const actionLabel = isPublic ? "Make Private" : "Make Public";
-    const actionClass = isPublic ? "btn btn-public-action btn-make-private" : "btn btn-primary btn-public-action";
-    const loadingHtml = publicState.isSubmitting
-        ? `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>`
+    const pwdBadgeClass = publicState.hasPassword ? "share-badge share-badge--on" : "share-badge share-badge--off";
+    const pwdBadgeLabel = publicState.hasPassword ? "Password set" : "No password";
+    const passwordPanelClass = publicState.showPasswordForm ? "" : "d-none";
+    const clearPwdBtn = publicState.hasPassword
+        ? `<button type="button" id="shareClearPasswordBtn" class="btn btn-outline-danger btn-sm">Remove</button>`
         : "";
 
-    const linkBlock = isPublic ? `
-        <div class="mb-3">
-            <label class="form-label mb-1" for="publicMessageLinkInput">View link</label>
-            <div class="public-link-field">
-                <input id="publicMessageLinkInput" type="text" class="form-control" readonly value="${escapeHtml(publicState.publicUrl || "")}">
-                <button type="button" id="publicMessageCopyLinkBtn" class="btn btn-outline-secondary public-link-copy-btn">Copy</button>
-            </div>
-        </div>
-    ` : "";
+    publicState.shareUrl = messageShareUrl(publicState.profileSlug, publicState.slug);
 
     body.innerHTML = `
-        <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-            <span class="public-modal-status ${statusClass}">${statusLabel}</span>
+        <div class="share-modal-section">
+            <div class="share-row">
+                <div>
+                    <p class="share-row__label">Public access</p>
+                    <p class="share-row__hint">${isPublic ? "Anyone with the link can open this message." : "Only you can view this message from your profile."}</p>
+                </div>
+                <label class="share-toggle" title="Toggle public access">
+                    <input type="checkbox" id="sharePublicToggle" ${isPublic ? "checked" : ""} ${publicState.isSubmitting ? "disabled" : ""}>
+                    <span class="share-toggle__track"></span>
+                </label>
+            </div>
         </div>
-        ${linkBlock}
-        <div class="d-grid">
-            <button type="button" id="publicMessageToggleBtn" class="${actionClass}" ${publicState.isSubmitting ? "disabled" : ""}>
-                ${loadingHtml}${actionLabel}
-            </button>
+
+        <div class="share-modal-section">
+            <div class="share-field-label">Link slug</div>
+            <div class="share-slug-row">
+                <input type="text" id="shareSlugInput" class="form-control" value="${escapeHtml(publicState.slug)}" placeholder="e.g. 367 or abc-1234" autocomplete="off" spellcheck="false" ${publicState.isSubmitting ? "disabled" : ""}>
+                <button type="button" id="shareGenerateSlugBtn" class="btn icon-btn icon-btn--msg share-icon-btn" aria-label="Generate random slug" title="Generate random slug" ${publicState.isSubmitting ? "disabled" : ""}>
+                    <img src="assets/img/icons/random.svg" alt="" aria-hidden="true">
+                </button>
+            </div>
+            <div class="share-url-preview">
+                <input type="text" id="shareUrlPreview" class="form-control" readonly value="${escapeHtml(publicState.shareUrl)}" aria-label="Message URL">
+                <button type="button" id="shareCopyUrlBtn" class="btn icon-btn icon-btn--msg share-icon-btn copy-btn" aria-label="Copy link" title="Copy link">
+                    <img src="assets/img/icons/clipboard-copy.svg" alt="" aria-hidden="true">
+                </button>
+            </div>
         </div>
+
+        <div class="share-modal-section">
+            <div class="share-row">
+                <span id="sharePasswordBadge" class="${pwdBadgeClass}">${pwdBadgeLabel}</span>
+                <div class="d-flex gap-2">
+                    ${clearPwdBtn}
+                    <button type="button" id="shareSetPasswordBtn" class="btn btn-outline-secondary btn-sm" ${publicState.isSubmitting ? "disabled" : ""}>
+                        ${publicState.hasPassword ? "Change" : "Set password"}
+                    </button>
+                </div>
+            </div>
+            <div id="sharePasswordPanel" class="share-password-panel ${passwordPanelClass}">
+                <label for="sharePasswordInput" class="form-label small mb-1">New password</label>
+                <input type="password" id="sharePasswordInput" class="form-control" placeholder="At least 4 characters" autocomplete="new-password" minlength="4">
+            </div>
+        </div>
+
+        <div id="shareFormError" class="share-form-error" role="alert"></div>
     `;
 
-    document.getElementById("publicMessageToggleBtn")?.addEventListener("click", toggleMessagePublic);
-    document.getElementById("publicMessageCopyLinkBtn")?.addEventListener("click", async () => {
-        const input = document.getElementById("publicMessageLinkInput");
-        const link = input?.value || publicState.publicUrl || "";
-        const btn = document.getElementById("publicMessageCopyLinkBtn");
-        if (!link || !btn) return;
-        await copyText(btn, link);
-    });
+    bindShareModalEvents();
 }
 
-function openPublicModal(messagePk, isPublic) {
+function openPublicModal(messagePk, isPublic, extra = {}) {
     const pk = Number(messagePk || 0);
     if (!pk || pk <= 0) return;
     publicState.messagePk = pk;
     publicState.isPublic = !!isPublic;
-    publicState.publicUrl = messagePublicUrl(pk);
+    publicState.slug = String(extra.slug || "").trim().toLowerCase();
+    if (!publicState.slug) {
+        publicState.slug = generateDefaultSlug(pk);
+    }
+    publicState.profileSlug = String(extra.profileSlug || encodeProfileSlug(CURRENT_USER_ID)).toLowerCase();
+    publicState.hasPassword = !!extra.hasPassword;
+    publicState.shareUrl = extra.url || messageShareUrl(publicState.profileSlug, publicState.slug);
     publicState.isSubmitting = false;
+    publicState.showPasswordForm = false;
+    publicState.clearPasswordOnSave = false;
+    setShareFormError("");
     renderPublicModalContent();
     getPublicModalInstance()?.show();
 }
 
-async function toggleMessagePublic() {
+async function saveMessageSharing() {
     if (publicState.isSubmitting) return;
     const pk = Number(publicState.messagePk || 0);
     if (!pk || pk <= 0) return;
 
-    const nextPublic = !publicState.isPublic;
+    const slug = document.getElementById("shareSlugInput")?.value?.trim().toLowerCase() || "";
+    const isPublic = !!document.getElementById("sharePublicToggle")?.checked;
+    const newPassword = document.getElementById("sharePasswordInput")?.value?.trim() || "";
+
+    if (!slug) {
+        setShareFormError("Please enter a slug for the link.");
+        return;
+    }
+    if (!/^[0-9a-z][0-9a-z\-]*$/i.test(slug)) {
+        setShareFormError("Slug may only contain letters, numbers, and hyphens.");
+        return;
+    }
+
+    const payload = {
+        message_pk: pk,
+        public: isPublic ? 1 : 0,
+        slug,
+    };
+
+    if (publicState.clearPasswordOnSave) {
+        payload.clear_password = true;
+        payload.password = "";
+    } else if (publicState.showPasswordForm && newPassword !== "") {
+        payload.password = newPassword;
+    }
+
     publicState.isSubmitting = true;
-    renderPublicModalContent();
+    setShareFormError("");
+    const saveBtn = document.getElementById("publicMessageSaveBtn");
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving…`;
+    }
 
     try {
         const res = await fetch("api/set_message_public.php", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message_pk: pk, public: nextPublic ? 1 : 0 }),
+            body: JSON.stringify(payload),
         });
         let data = null;
         try { data = await res.clone().json(); } catch (_) {}
-        if (!res.ok) throw new Error(data?.error || "Update failed");
+
+        if (!res.ok) {
+            if (data?.error === "slug_taken") {
+                setShareFormError(data?.message || "This slug is already in use.");
+                return;
+            }
+            if (data?.error === "slug_invalid") {
+                setShareFormError("Invalid slug format.");
+                return;
+            }
+            if (data?.error === "password_too_short") {
+                setShareFormError("Password must be at least 4 characters.");
+                return;
+            }
+            throw new Error(data?.error || "Update failed");
+        }
         if (data?.error) throw new Error(data.error);
 
         publicState.isPublic = Number(data?.public || 0) === 1;
-        publicState.publicUrl = data?.url || messagePublicUrl(pk);
-        syncPublicButtonInList(pk, publicState.isPublic);
-    } catch (_) {
-        // Keep modal open for retry.
+        publicState.slug = String(data?.slug || slug).toLowerCase();
+        publicState.shareUrl = data?.url || messageShareUrl(publicState.profileSlug, publicState.slug);
+        publicState.hasPassword = !!data?.has_password;
+        publicState.showPasswordForm = false;
+        publicState.clearPasswordOnSave = false;
+        syncPublicButtonInList(pk, publicState.isPublic, {
+            slug: publicState.slug,
+            hasPassword: publicState.hasPassword,
+            url: publicState.shareUrl,
+        });
+        getPublicModalInstance()?.hide();
+    } catch (err) {
+        setShareFormError(String(err?.message || "Could not save changes."));
     } finally {
         publicState.isSubmitting = false;
-        renderPublicModalContent();
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save changes";
+        }
     }
 }
 
@@ -1520,23 +1810,13 @@ function closeMessageActionMenus() {
 }
 
 async function copyText(btn, text){
-    const originalDisabled = btn?.disabled ?? false;
-    const originalClassName = btn?.className ?? "";
-    const originalInnerHTML = btn?.innerHTML ?? "";
-    const originalAriaLabel = btn?.getAttribute?.("aria-label") ?? "Copy";
-    const originalTitle = btn?.getAttribute?.("title") ?? "Copy";
-
-    const setState = (label, disabled) => {
-        if (!btn) return;
-        btn.setAttribute("aria-label", label);
-        btn.setAttribute("title", label);
-        btn.disabled = disabled;
-    };
+    if (!btn) return;
+    const originalDisabled = btn.disabled;
+    const originalAriaLabel = btn.getAttribute("aria-label") ?? "Copy";
+    const originalTitle = btn.getAttribute("title") ?? "Copy";
 
     const restoreButton = () => {
-        if (!btn) return;
-        btn.className = originalClassName;
-        btn.innerHTML = originalInnerHTML;
+        btn.classList.remove("copy-btn--copied");
         btn.setAttribute("aria-label", originalAriaLabel);
         btn.setAttribute("title", originalTitle);
         btn.disabled = originalDisabled;
@@ -1560,16 +1840,18 @@ async function copyText(btn, text){
             if (!ok) throw new Error("Copy failed");
         }
 
-        setState("Copied", true);
-        if (btn) {
-            btn.classList.add("copy-btn--copied");
-            btn.textContent = "Copied";
-        }
+        btn.classList.add("copy-btn--copied");
+        btn.setAttribute("aria-label", "Copied");
+        btn.setAttribute("title", "Copied");
+        btn.disabled = true;
         setTimeout(restoreButton, 3000);
-    } catch (e) {
-        setState("Failed", true);
-        if (btn) btn.textContent = "Failed";
-        setTimeout(restoreButton, 1500);
+    } catch (_) {
+        btn.setAttribute("aria-label", "Copy failed");
+        btn.setAttribute("title", "Copy failed");
+        setTimeout(() => {
+            btn.setAttribute("aria-label", originalAriaLabel);
+            btn.setAttribute("title", originalTitle);
+        }, 1500);
     }
 }
 
@@ -1631,16 +1913,29 @@ loadMessages();
     document.getElementById("messages")?.addEventListener("click", (e) => {
         const btn = e.target?.closest?.("button.public-btn");
         if (!btn) return;
+        const box = btn.closest(".message-box");
         const pk = Number(btn.getAttribute("data-message-pk") || 0);
         const isPublic = String(btn.getAttribute("data-is-public") || "0") === "1";
-        openPublicModal(pk, isPublic);
+        openPublicModal(pk, isPublic, {
+            slug: box?.getAttribute("data-slug") || "",
+            hasPassword: String(box?.getAttribute("data-has-password") || "0") === "1",
+            profileSlug: box?.getAttribute("data-profile-slug") || encodeProfileSlug(CURRENT_USER_ID),
+            url: box?.getAttribute("data-share-url") || "",
+        });
     });
+
+    document.getElementById("publicMessageSaveBtn")?.addEventListener("click", saveMessageSharing);
 
     document.getElementById("publicMessageModal")?.addEventListener("hidden.bs.modal", () => {
         publicState.messagePk = null;
         publicState.isPublic = false;
-        publicState.publicUrl = "";
+        publicState.slug = "";
+        publicState.shareUrl = "";
+        publicState.hasPassword = false;
         publicState.isSubmitting = false;
+        publicState.showPasswordForm = false;
+        publicState.clearPasswordOnSave = false;
+        setShareFormError("");
     });
 
     // Delete modal handlers.
