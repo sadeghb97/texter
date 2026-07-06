@@ -4,18 +4,18 @@ use Avetify\DB\DBConnection;
 
 class TexterConnection extends DBConnection {
     public function getHost(): string {
-        return DB_HOST;
+        return $_ENV['DB_HOST'];
     }
 
     public function getUser(): string {
-        return DB_USER;
+        return $_ENV['DB_USERNAME'];
     }
 
     public function getPassword(): string {
-        return DB_PASSWORD;
+        return $_ENV['DB_PASSWORD'];
     }
 
     public function getDBName(): string {
-        return DB_NAME;
+        return $_ENV['DB_DATABASE'];
     }
 }
